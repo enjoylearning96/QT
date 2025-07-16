@@ -1,0 +1,92 @@
+# 示例YAML文件
+version: '2.0'  # 版本
+
+application:
+  name: 多线程ping
+  environment: python
+title: ['类型', '名称', 'ip']
+
+database:
+  外网:
+    百度:
+      ip: www.baidu.com
+      status: 0
+    谷歌:
+      ip: www.google.com
+      status: 0
+    B站:
+      ip: www.bilibili.com
+      status: 0
+  830E: 
+    405: 
+      ip: 10.21.0.84
+      status: 0
+    409:  
+      ip:
+      status: 0
+  930E:
+    502:  
+      ip: 10.21.0.81
+      status: 0
+    503:  
+      ip: 10.21.1.202
+      status: 0
+    504:  
+      ip: 10.21.0.161
+      status: 0
+    507:  
+      ip: 10.21.0.177
+      status: 0
+    509:  
+      ip: 10.21.1.199
+      status: 0
+    510:  
+      ip: 10.21.0.65
+      status: 0
+    511:  
+      ip: 10.21.1.1
+      status: 0
+    513:   
+      ip: 10.21.0.145
+      status: 0
+  33900: 
+    411:   
+      ip:
+      status: 0
+    412:   
+      ip:
+      status: 0
+    413:   
+      ip:
+      status: 0
+    415:   
+      ip:
+      status: 0
+    416:   
+      ip:
+      status: 0
+    419:   
+      ip:
+      status: 0
+    420:   
+      ip:
+      status: 0
+  采图车:
+    采图车02: 
+      ip: 10.21.1.204
+      status: 0
+    采图车03: 
+      ip: 10.21.0.155
+      status: 0
+    
+
+
+
+# 标签示例
+tags: 
+  - python
+  - yaml
+
+description: >
+  This is an example of using YAML.
+  It supports configuration files and data serialization.
