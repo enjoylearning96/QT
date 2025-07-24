@@ -2,8 +2,8 @@
 Author: 李晓乐
 Date: 2025-04-24 20:25:31
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-04-29 13:26:41
-FilePath: \多线程ping - v3.1\src\main.py
+LastEditTime: 2025-07-22 08:59:18
+FilePath: \QT\多线程ping - v3.1\src\main.py
 Description: 
 
 t (c) 2025 by ${git_name_email}, All Rights Reserved. 
