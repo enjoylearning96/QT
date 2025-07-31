@@ -1,0 +1,6 @@
+存储类	说明	对应 Python 类型
+NULL	空值	None
+INTEGER	整数	int
+REAL	浮点数	float
+TEXT	文本	str
+BLOB	二进制数据	bytes
