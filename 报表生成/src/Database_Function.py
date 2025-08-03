@@ -87,6 +87,57 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error inserting vehicle record: {e}")
     
+    #获取车辆数据
+    # 返回指定指定条件的的车辆数据，可选条件有车辆编号、车辆类型
+    def get_vehicle_data(self, vehicle_number=None, vehicle_type=None):
+        query = "SELECT * FROM vehicle_data WHERE 1=1"
+        params = []
+        
+        if vehicle_number is not None:
+            query += " AND vehicle_number = ?"
+            params.append(vehicle_number)
+        
+        if vehicle_type is not None:
+            query += " AND vehicle_type = ?"
+            params.append(vehicle_type)
+        
+        try:
+            self.cursor.execute(query, tuple(params))
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error fetching vehicle data: {e}")
+            return []
+        
+    #获取车辆记录
+    # 返回指定条件的车辆记录，可选条件有车辆编号、日期、铲斗ID、车辆状态
+    def get_vehicle_records(self, vehicle_number=None, date=None, shovel_id=None, vehicle_status=None):
+        query = "SELECT * FROM vehicle_records WHERE 1=1"
+        params = []
+        
+        if vehicle_number is not None:
+            query += " AND vehicle_number = ?"
+            params.append(vehicle_number)
+        
+        if date is not None:
+            query += " AND date = ?"
+            params.append(date)
+        
+        if shovel_id is not None:
+            query += " AND shovel_id = ?"
+            params.append(shovel_id)
+        
+        if vehicle_status is not None:
+            query += " AND vehicle_status = ?"
+            params.append(vehicle_status)
+        
+        try:
+            self.cursor.execute(query, tuple(params))
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error fetching vehicle records: {e}")
+            return []
+
+    
     # 更新车辆记录
     # 允许更新车辆状态、铲斗id，车辆工作时长、车辆产量和班次
     def update_vehicle_record(self, record_id, vehicle_status=None, shovel_id=None, vehicle_operating_hours=None, vehicle_production=None):
