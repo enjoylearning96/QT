@@ -1,3 +1,13 @@
+'''
+Author: 李晓乐
+Date: 2025-08-05 18:25:05
+LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
+LastEditTime: 2025-08-09 21:02:14
+FilePath: \QT\报表生成\src\QT_Function.py
+Description: 
+
+Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
+'''
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStatusBar, QVBoxLayout, QWidget, QPushButton
 from PyQt6.QtCore import QObject, pyqtSignal
