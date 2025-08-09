@@ -63,7 +63,7 @@ class DatabaseManager:
                
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP和载重
-    def insert_vehicle_data(self, vehicle_number, vehicle_type, vehicle_ip, load_capacity):
+    def insert_vehicle_data(self, vehicle_number, vehicle_type="unkonwn", vehicle_ip="unkonwn", load_capacity=0):
         try:
             self.cursor.execute('''
                 INSERT INTO vehicle_data (vehicle_number, vehicle_type, vehicle_ip, vehicle_load_capacity)
