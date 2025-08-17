@@ -1,16 +1,19 @@
 import sqlite3
+from pathlib import Path
+
 class DatabaseManager:
-    def __init__(self, db_file):
-        self.connection = self.create_connection("../data/unmannedDrivingOperationDatabase.db")
+    def __init__(self):
+        self.path = (Path(__file__).parent.parent / "data" / "unmannedDrivingOperationDatabase.db")
+        self.connection = self.create_connection()
         self.cursor = self.connection.cursor()
         self.create_tables()
 
         
 
-    def create_connection(self, db_file):
+    def create_connection(self):
         conn = None
         try:
-            conn = sqlite3.connect(db_file)
+            conn = sqlite3.connect(self.path)
             print("Connection established")
         except Error as e:
             print(e)
@@ -48,12 +51,12 @@ class DatabaseManager:
                 CREATE TABLE IF NOT EXISTS vehicle_records (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     vehicle_number INTEGER NOT NULL,
-                    date TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d', 'now', 'localtime')),
+                    date TEXT NOT NULL DEFAULT CURRENT_DATE,
                     shovel_id TEXT,
                     vehicle_status TEXT NOT NULL DEFAULT '待令',
                     vehicle_operating_hours REAL NOT NULL DEFAULT 0.0,
                     vehicle_production REAL NOT NULL DEFAULT 0.0,
-                    shift TEXT NOT NULL DEFAULT CHECKED('一班', '二班', '三班'),
+                    shift TEXT NOT NULL DEFAULT '一班' CHECK(shift IN ('一班', '二班', '三班'))
                 )
             ''')
             self.connection.commit()
