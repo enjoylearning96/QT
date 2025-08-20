@@ -48,11 +48,12 @@ class UI(QMainWindow):
         sys.stdout = self.emitter
         self.ui_main.show()
         self.database=DatabaseManager() 
+        self.vehicles =self.database.get_vehicle_data(self,vehicle_type=None)
     
     #建立控件间的链接
     def connectload(self):
         self.ui_main.action_2.triggered.connect(self.show_vehicle_manager)
-        self.ui_main.action.triggered.connect(self.show_vehicle_distribution)
+        # self.ui_main.action.triggered.connect(self.show_vehicle_distribution)
         self.ui_main.dateEdit.setDate(QDate.currentDate())
         self.ui_main.dateEdit_2.setDate(QDate.currentDate())
         self.ui_main.dateEdit_3.setDate(QDate.currentDate())
@@ -66,13 +67,6 @@ class UI(QMainWindow):
         self.ui_main.hide()
         self.ui_vehicle.comboBox.activated.connect(self.on_activated)
         self.ui_vehicle.pushButton.clicked.connect(self.vehicle)
-        
-    def show_vehicle_distribution(self):
-        ui_path_vehicle = (Path(__file__).parent.parent / "ui" / "vehicle_distribution.ui")
-        self.ui_vehicle_distribution=uic.loadUi(ui_path_vehicle,self)
-        self.ui_vehicle_distribution.setStyleSheet(self.style)
-        self.ui_vehicle_distribution.show()
-        self.ui_main.hide()
         
     #车辆管理窗口选项激活时，界面变化
     def on_activated(self, index):

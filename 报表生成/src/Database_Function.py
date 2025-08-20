@@ -106,7 +106,19 @@ class DatabaseManager:
         
         try:
             self.cursor.execute(query, tuple(params))
-            return self.cursor.fetchall()
+            rows = self.cursor.fetchall()
+            # 转换为字典列表（更易处理）
+            vehicles = []
+            for row in rows:
+                vehicle = {
+                    'id': row[0],
+                    'vehicle_number': row[1],
+                    'vehicle_type': row[2],
+                    'vehicle_ip': row[3],
+                    'load_capacity': row[4]
+                }
+                vehicles.append(vehicle)
+            return vehicles
         except sqlite3.Error as e:
             print(f"Error fetching vehicle data: {e}")
             return []
@@ -135,7 +147,22 @@ class DatabaseManager:
         
         try:
             self.cursor.execute(query, tuple(params))
-            return self.cursor.fetchall()
+            rows = self.cursor.fetchall()
+            # 转换为字典列表（更易处理）
+            vehicles = []
+            for row in rows:
+                vehicle = {
+                    'id': row[0],
+                    'vehicle_number': row[1],
+                    'date': row[2],
+                    'shovel_id': row[3],
+                    'vehicle_status': row[4],
+                    'vehicle_operating_hours': row[5],
+                    'vehicle_production': row[6],
+                    'shift': row[7]
+                }
+                vehicles.append(vehicle)
+            return vehicles
         except sqlite3.Error as e:
             print(f"Error fetching vehicle records: {e}")
             return []
