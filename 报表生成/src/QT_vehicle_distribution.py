@@ -4,6 +4,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessag
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 from PyQt6 import uic
+from pathlib import Path
+
 
 class ShovelWidget(QCheckBox):
     """自定义电铲选择复选框"""
@@ -12,17 +14,20 @@ class ShovelWidget(QCheckBox):
         self.shovel_id = shovel_id
 
 class VehicleDistribution(QMainWindow):
-    def __init__(self,current_shift,shovel_options):
+    def __init__(self,database):
         super().__init__()
         # 加载 UI 文件
         ui_path = (Path(__file__).parent.parent / "ui" / "vehicle_distribution.ui")
         style_path = (Path(__file__).parent.parent / "ui" / "Ubuntu.qss")
-        uic.loadUi(ui_path, self)
+        self.ui=uic.loadUi(ui_path, self)
         with open(style_path, "r") as style_file:
             self.setStyleSheet(style_file.read())
         # 初始化变量
-        self.current_shift = current_shift
-        self.shovel_options = shovel_options
+        self.database = database
+        self.shovel_options = []
+        self.shovel_optionss = self.database.get_vehicle_data(vehicle_type="电铲")
+        for option in self.shovel_optionss:
+            self.shovel_options.append(option["vehicle_number"])
         self.selected_shovels = []   # 选中的电铲列表
         self.shovel_widgets = {}     # 电铲组件字典
         self.vehicles = self.load_vehicle_data()
@@ -35,6 +40,8 @@ class VehicleDistribution(QMainWindow):
         
         # 初始更新显示
         self.update_display()
+        
+        self.ui.show()
     
     def init_shovel_selection(self):
         """初始化电铲选择列表"""
@@ -118,18 +125,10 @@ class VehicleDistribution(QMainWindow):
     
     def load_vehicle_data(self):
         """加载车辆数据"""
-        return [
-            {"id": "V001", "model": "卡车A", "status": "待令", "shovel": None},
-            {"id": "V002", "model": "卡车A", "status": "待令", "shovel": None},
-            {"id": "V003", "model": "卡车B", "status": "待令", "shovel": None},
-            {"id": "V004", "model": "卡车C", "status": "待令", "shovel": None},
-            {"id": "V005", "model": "卡车C", "status": "待令", "shovel": None},
-            {"id": "V006", "model": "卡车A", "status": "运行中", "shovel": "1"},
-            {"id": "V007", "model": "卡车B", "status": "运行中", "shovel": "2"},
-            {"id": "V008", "model": "卡车A", "status": "故障", "shovel": None},
-            {"id": "V009", "model": "卡车B", "status": "维修中", "shovel": "3"}
-        ]
-    
+
+        self.vehicles = self.database.get_vehicle_data(vehicle_type="矿卡")
+        
+        return self.vehicles
     def update_display(self):
         """更新所有列表显示"""
         # 清空车辆列表
@@ -215,9 +214,3 @@ class VehicleDistribution(QMainWindow):
                     
                     self.update_display()
                 break
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = VehicleSystem()
-    window.show()
-    sys.exit(app.exec())
