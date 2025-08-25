@@ -1,10 +1,11 @@
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox,
-                            QInputDialog, QCheckBox)
+                            QInputDialog, QCheckBox,QListWidget)
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 from PyQt6 import uic
 from pathlib import Path
+import time
 
 
 class ShovelWidget(QCheckBox):
@@ -30,19 +31,19 @@ class VehicleDistribution(QMainWindow):
             self.shovel_options.append(option["vehicle_number"])
         self.selected_shovels = []   # 选中的电铲列表
         self.shovel_widgets = {}     # 电铲组件字典
-        self.vehicles = self.load_vehicle_data()
         
         # 初始化电铲选择列表
         self.init_shovel_selection()
         
+        # 初始化车辆列表
+        self.init_vehicle_list()
+
         # 连接信号
         self.setup_connections()
-        
-        # 初始更新显示
-        self.update_display()
-        
+               
         self.ui.show()
     
+    # 初始化电铲选择列表
     def init_shovel_selection(self):
         """初始化电铲选择列表"""
         # 清空现有选项
@@ -53,22 +54,52 @@ class VehicleDistribution(QMainWindow):
             item = QListWidgetItem(option)
             item.setCheckState(Qt.CheckState.Unchecked)
             self.listWidget_shovelSelect.addItem(item)
-    
+        
+    # 初始化车辆列表
+    def init_vehicle_list(self):
+        
+        for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-930E"):
+            item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.listWidget_930E.addItem(item)
+        for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-830E"):
+            item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.listWidget_830E.addItem(item)
+        for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-NTE330"):
+            item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.listWidget_NTE330.addItem(item)
+        for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-NTE360"):
+            item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.listWidget_NTE360.addItem(item)
+        for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-33900"):
+            item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.listWidget_33900.addItem(item)
+
     def setup_connections(self):
         """连接信号和槽"""
         self.pushButton_confirmShovel.clicked.connect(self.on_confirm_shovel_selection)
-        self.comboBox_filter.currentTextChanged.connect(self.update_display)
-        self.listWidget_vehicles.itemDoubleClicked.connect(self.edit_vehicle_status)
-    
+        self.pushButton_2.clicked.connect(self.update_display_add)
+        self.pushButton_3.clicked.connect(self.update_display_remove)
+        self.pushButton.clicked.connect(self.record_save)
+        for i in range(self.tabWidget.count()):
+            tab = self.tabWidget.widget(i)  # 获取标签页            
+            # 在标签页中查找所有的 ListWidget
+            for list_widget in tab.findChildren(QListWidget):
+                list_widget.itemDoubleClicked.connect(self.edit_vehicle_status)
+
+    #确认电铲选择
     def on_confirm_shovel_selection(self):
-        """确认电铲选择"""
         selected_shovels = []
         
         # 获取选中的电铲
         for i in range(self.listWidget_shovelSelect.count()):
             item = self.listWidget_shovelSelect.item(i)
             if item.checkState() == Qt.CheckState.Checked:
-                shovel_id = item.text().replace("电铲", "")  # 提取数字
+                shovel_id = item.text()
                 selected_shovels.append(shovel_id)
 
         if not selected_shovels:
@@ -77,84 +108,46 @@ class VehicleDistribution(QMainWindow):
         
         self.selected_shovels = selected_shovels
         self.create_shovel_widgets()
-        self.update_display()
     
+    #修改标签页为选中的电铲
     def create_shovel_widgets(self):
-        """创建选中的电铲组件"""
-        # 清空现有电铲组件
-        self.clear_shovel_widgets()
         
-        # 创建新的电铲组件
-        for shovel_id in self.selected_shovels:
-            self.create_single_shovel_widget(shovel_id)
+        num=len(self.selected_shovels)-2
+        if num>0:
+            for i in range(num):                
+                self.tabWidget_shovelSelect.addTab(self.listWidget(), "")
+        for i in range(len(self.selected_shovels)):
+            self.tabWidget_shovelSelect.setTabText(i, f"电铲 {self.selected_shovels[i]}")
     
-    def clear_shovel_widgets(self):
-        """清空所有电铲组件"""
-        for shovel_id in list(self.shovel_widgets.keys()):
-            widget = self.shovel_widgets.pop(shovel_id)
-            widget.deleteLater()
-    
-    def create_single_shovel_widget(self, shovel_id):
-        """创建单个电铲组件"""
-        from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QListWidget, QPushButton
-        
-        # 创建电铲组
-        shovel_group = QGroupBox(f"电铲 {shovel_id}")
-        layout = QVBoxLayout()
-        
-        # 车辆列表
-        vehicle_list = QListWidget()
-        vehicle_list.setFixedHeight(120)
-        vehicle_list.setObjectName(f"shovel{shovel_id}_list")
-        
-        # 分配按钮
-        assign_btn = QPushButton("↑ 分配选中车辆")
-        assign_btn.clicked.connect(lambda checked, s_id=shovel_id: self.assign_vehicle(s_id))
-        
-        layout.addWidget(vehicle_list)
-        layout.addWidget(assign_btn)
-        shovel_group.setLayout(layout)
-        
-        # 添加到布局和字典
-        self.shovelContainerLayout.addWidget(shovel_group)
-        self.shovel_widgets[shovel_id] = {
-            'group': shovel_group,
-            'list': vehicle_list,
-            'button': assign_btn
-        }
-    
-    def load_vehicle_data(self):
-        """加载车辆数据"""
-
-        self.vehicles = self.database.get_vehicle_data(vehicle_type="矿卡")
-        
-        return self.vehicles
-    def update_display(self):
+    #分配时对电铲的车辆进行更新
+    def update_display_add(self):
         """更新所有列表显示"""
-        # 清空车辆列表
-        self.listWidget_vehicles.clear()
+        #获取当前所选择的电铲
+        selected_model = self.tabWidget_shovelSelect.currentWidget()
+        #获取当前所选择的车辆
+        current_tab = self.tabWidget.currentWidget()
+        if current_tab:
+            #多个时使用findChildren
+            list_widget = current_tab.findChild(QListWidget)
+            if list_widget:
+                selected_vehicles = []
+                for i in range(list_widget.count()):
+                    item = list_widget.item(i)
+                    if item.checkState() == Qt.CheckState.Checked:
+                        selected_vehicles.append(item.text())
+                        item.setText(f"{item.text()} - {self.tabWidget_shovelSelect.tabText(self.tabWidget_shovelSelect.currentIndex())}")
+                        self.toggle_item_state(item)
+                        
+                # for item in list_widget.selectedItems():
+                #     selected_vehicles.append(item.text())
+                #     item.setText(f"{item.text()} - {self.tabWidget_shovelSelect.tabText(self.tabWidget_shovelSelect.currentIndex())}")
+                #     self.toggle_item_state(item)
+                #     time.sleep(0.1)  # 添加延时
+        selected_model.findChild(QListWidget).addItems(selected_vehicles)
         
-        # 清空所有电铲列表
-        for shovel_data in self.shovel_widgets.values():
-            shovel_data['list'].clear()
-        
-        selected_model = self.comboBox_filter.currentText()
-        
-        for vehicle in self.vehicles:
-            text = f"{vehicle['id']} - {vehicle['model']} - {vehicle['status']}"
-            
-            if vehicle['shovel'] in self.selected_shovels:
-                # 已分配到当前选择的电铲
-                shovel_data = self.shovel_widgets.get(vehicle['shovel'])
-                if shovel_data:
-                    item = QListWidgetItem(text)
-                    self.set_item_color(item, vehicle['status'])
-                    shovel_data['list'].addItem(item)
-            elif selected_model == "所有型号" or vehicle['model'] == selected_model:
-                # 未分配或分配到其他电铲的车辆
-                item = QListWidgetItem(text)
-                self.set_item_color(item, vehicle['status'])
-                self.listWidget_vehicles.addItem(item)
+
+    def update_display_remove(self):
+        pass
     
     def set_item_color(self, item, status):
         """根据状态设置颜色"""
@@ -214,3 +207,15 @@ class VehicleDistribution(QMainWindow):
                     
                     self.update_display()
                 break
+    
+    # 切换单个项目的可选状态
+    def toggle_item_state(self, item):
+        
+        if item.flags() & Qt.ItemFlag.ItemIsEnabled:
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+            print(f"已禁用: {item.text()}")
+        else:
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEnabled)
+            print(f"已启用: {item.text()}")        
+    def record_save(self):
+        pass

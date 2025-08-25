@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-08-23 11:41:24
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-08-23 13:04:41
+LastEditTime: 2025-08-25 16:20:02
 FilePath: \QT\报表生成\src\QT_vehicle_manager.py
 Description: 
 
@@ -21,8 +21,11 @@ class VehicleManager(QMainWindow):
         # 加载 UI 文件
         self.database=database
         ui_path_vehicle = (Path(__file__).parent.parent / "ui" / "vehicle_manager.ui")
+        style_path = (Path(__file__).parent.parent / "ui" / "Ubuntu.qss")
         self.ui_vehicle=uic.loadUi(ui_path_vehicle,self)
-        self.ui_vehicle.setStyleSheet(self.style)
+        with open(style_path, "r") as style_file:
+            self.setStyleSheet(style_file.read())
+        
         self.ui_vehicle.show()
         self.ui_vehicle.comboBox.activated.connect(self.on_activated)
         self.ui_vehicle.pushButton.clicked.connect(self.vehicle)

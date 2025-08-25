@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-08-05 18:25:05
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-08-23 13:12:26
+LastEditTime: 2025-08-25 22:14:52
 FilePath: \QT\报表生成\src\QT_Function.py
 Description: 
 
@@ -18,13 +18,13 @@ from QT_vehicle_manager import VehicleManager
 from pathlib import Path
 
 # 自定义一个继承自QObject的类，用于重定向stdout
-class Emitter(QObject):
-    text_written = pyqtSignal(str)  # 定义一个信号，用于传递文本
+# class Emitter(QObject):
+#     text_written = pyqtSignal(str)  # 定义一个信号，用于传递文本
 
-    def write(self, text):
-        self.text_written.emit(text) 
-    def flush(self):
-        pass  
+#     def write(self, text):
+#         self.text_written.emit(text) 
+#     def flush(self):
+#         pass  
     # 这两个函数是重定向时必须包含的
     
 def load_stylesheet(filename):
@@ -45,12 +45,11 @@ class UI(QMainWindow):
         self.connectload()
         
         #重定向
-        self.emitter=Emitter()
-        self.emitter.text_written.connect(self.update_status_bar)
-        sys.stdout = self.emitter
+        # self.emitter=Emitter()
+        # self.emitter.text_written.connect(self.update_status_bar)
+        # sys.stdout = self.emitter
         self.ui_main.show()
         self.database=DatabaseManager() 
-        self.vehicles =self.database.get_vehicle_data(self,vehicle_type=None)
     
     #建立控件间的链接
     def connectload(self):
@@ -72,6 +71,6 @@ class UI(QMainWindow):
         self.statusbar.showMessage(text.strip())
         
     # 恢复标准输出    
-    def closeEvent(self, event):
-        sys.stdout = sys.__stdout__
-        super().closeEvent(event)
+    # def closeEvent(self, event):
+    #     sys.stdout = sys.__stdout__
+    #     super().closeEvent(event)

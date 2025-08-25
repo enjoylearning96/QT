@@ -163,7 +163,12 @@
          </item>
          <item>
           <property name="text">
-           <string>矿卡-730E</string>
+           <string>矿卡-NTE330</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>矿卡-NTE360</string>
           </property>
          </item>
          <item>
@@ -190,7 +195,7 @@
        <item>
         <widget class="QLineEdit" name="lineEdit_2">
          <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
