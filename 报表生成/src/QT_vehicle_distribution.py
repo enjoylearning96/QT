@@ -138,11 +138,6 @@ class VehicleDistribution(QMainWindow):
                         item.setText(f"{item.text()} - {self.tabWidget_shovelSelect.tabText(self.tabWidget_shovelSelect.currentIndex())}")
                         self.toggle_item_state(item)
                         
-                # for item in list_widget.selectedItems():
-                #     selected_vehicles.append(item.text())
-                #     item.setText(f"{item.text()} - {self.tabWidget_shovelSelect.tabText(self.tabWidget_shovelSelect.currentIndex())}")
-                #     self.toggle_item_state(item)
-                #     time.sleep(0.1)  # 添加延时
         selected_model.findChild(QListWidget).addItems(selected_vehicles)
         
 

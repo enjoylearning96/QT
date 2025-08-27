@@ -41,7 +41,7 @@
       <height>541</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,1,1,1,1">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,1,1,1,1">
      <property name="leftMargin">
       <number>30</number>
      </property>
@@ -82,11 +82,6 @@
          </property>
          <item>
           <property name="text">
-           <string/>
-          </property>
-         </item>
-         <item>
-          <property name="text">
            <string>增加车辆</string>
           </property>
          </item>
@@ -101,29 +96,6 @@
           </property>
          </item>
         </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,2">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>车号</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEdit"/>
        </item>
       </layout>
      </item>
@@ -177,6 +149,37 @@
           </property>
          </item>
         </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="1,2">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>车号</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QComboBox" name="comboBox_3">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit"/>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>

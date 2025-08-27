@@ -35,7 +35,7 @@ class DatabaseManager:
                     vehicle_number INTEGER NOT NULL,
                     vehicle_type TEXT NOT NULL,
                     vehicle_ip TEXT NOT NULL,
-                    vehicle_load_capacity INTEGER NOT NULL DEFAULT 0
+                    vehicle_load_capacity TEXT NOT NULL DEFAULT '0'
                 )
             ''')
             self.connection.commit()
@@ -272,3 +272,12 @@ class DatabaseManager:
             print(f"数据库错误: {e}")
             self.connection.rollback()
             return False
+        
+    # 移除车辆数据
+    def delete_vehicle_data(self, vehicle_number):
+        try:
+            self.cursor.execute("DELETE FROM vehicle_data WHERE vehicle_number = ?", (vehicle_number,))
+            self.connection.commit()
+        except sqlite3.Error as e:
+            print(f"Error delete vehicle data: {e}")
+        
