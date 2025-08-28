@@ -1,106 +1,134 @@
-'''
-Author: 李晓乐
-Date: 2025-08-23 11:41:24
-LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-08-27 23:43:15
-FilePath: \QT\报表生成\src\QT_vehicle_manager.py
-Description: 
-
-Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
-'''
 import sys
 import re
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox,
-                            QInputDialog, QCheckBox)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeWidgetItem, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from PyQt6 import uic
 from pathlib import Path
 
+ui_path_vehicle = (Path(__file__).parent.parent / "ui" / "vehicle_manager.ui")
+ui_path_ok = (Path(__file__).parent.parent / "ui" / "vehicle_manager_ok.ui")
+style_path = (Path(__file__).parent.parent / "ui" / "Ubuntu.qss")
+    
+
+class EditDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.ui_ok=uic.loadUi(ui_path_ok,self)
+
 class VehicleManager(QMainWindow):
     def __init__(self,database):
         super().__init__()
-        # 加载 UI 文件
-        self.database=database
-        ui_path_vehicle = (Path(__file__).parent.parent / "ui" / "vehicle_manager.ui")
-        style_path = (Path(__file__).parent.parent / "ui" / "Ubuntu.qss")
-        self.ui_vehicle=uic.loadUi(ui_path_vehicle,self)
+        self.database = database
+        self.ui_vehicle = uic.loadUi(ui_path_vehicle,self)
+        self.ui_ok = EditDialog()
         with open(style_path, "r") as style_file:
             self.setStyleSheet(style_file.read())
-        self.ui_vehicle.comboBox_3.hide()
+        self.auto_add_secondary_nodes()
+        self.treeWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
+        self.ui_vehicle.pushButton_add.clicked.connect(lambda: self.vehicle_action(self.treeWidget.currentItem(), action="add"))
+        self.ui_vehicle.pushButton_remove.clicked.connect(lambda: self.vehicle_action(self.treeWidget.currentItem(), action="remove"))
         self.ui_vehicle.show()
-        self.ui_vehicle.comboBox.currentTextChanged.connect(self.on_combo_text_changed)
-        self.ui_vehicle.pushButton.clicked.connect(self.vehicle)
 
+    def auto_add_secondary_nodes(self):
+        # 遍历所有一级节点
+        for i in range(self.treeWidget.topLevelItemCount()):
+            parent_item = self.treeWidget.topLevelItem(i)
+            parent_text = parent_item.text(0)
+            vehicle_datas = self.database.get_vehicle_data(vehicle_type=parent_text)
+            # 为该一级节点添加对应的二级节点
+            for vehicle_data in vehicle_datas:
+                child_item = QTreeWidgetItem(parent_item)
+                child_item.setText(1, str(vehicle_data["vehicle_number"]))
+                child_item.setText(2, str(vehicle_data["vehicle_ip"]))
+                child_item.setText(3, str(vehicle_data["load_capacity"]))
+                child_item.setText(4, str(vehicle_data["available"]))
+    def on_item_double_clicked(self, item, column):
+        """双击二级节点进行编辑"""
+        # 只处理二级节点（有父节点的节点）
+        if item.parent() is not None:
+            self.edit_secondary_node(item)
     
-    #车辆管理窗口选项激活时，界面变化
-    def on_combo_text_changed(self, text):
-        # 根据选中的车辆类型更新界面
-        vehicle_manager_action = text
-        if vehicle_manager_action=="增加车辆" :
-            self.ui_vehicle.comboBox_3.hide()
-            self.ui_vehicle.lineEdit.show()
-            self.ui_vehicle.lineEdit_2.setText("")
-            self.ui_vehicle.lineEdit_3.setText("")
+    def edit_secondary_node(self, item):
+        """编辑二级节点内容"""
+        self.ui_ok.lineEdit.setText(item.text(1))
+        self.ui_ok.lineEdit.setEnabled(False)
+        self.ui_ok.lineEdit_2.setText(item.text(2))
+        self.ui_ok.lineEdit_3.setText(item.text(3))
+        if item.text(4):
+            self.ui_ok.checkBox.setChecked(True)
         else:
-            self.ui_vehicle.lineEdit.hide()
-            self.type_changed(self.ui_vehicle.comboBox_2.currentText())
-            self.ui_vehicle.comboBox_3.show()
-            self.ui_vehicle.comboBox_2.currentTextChanged.connect(self.type_changed)
-            
-    # 根据车辆类型刷新车辆列表
-    def type_changed(self, text):
-        if self.ui_vehicle.comboBox.currentText()=="增加车辆":
-            pass
-        else:
-            vehicles = self.database.get_vehicle_data(vehicle_type=text)
-            self.ui_vehicle.comboBox_3.clear()
-            self.ui_vehicle.comboBox_3.addItems([str(v['vehicle_number']) for v in vehicles])
-            self.vehicle_number_changed(self.ui_vehicle.comboBox_3.currentText())
-            self.ui_vehicle.comboBox_3.currentTextChanged.connect(self.vehicle_number_changed)
-    
-    def vehicle_number_changed(self, text):
-        vehicle_data=self.database.get_vehicle_data(vehicle_number=text)
-        if vehicle_data:
-            self.ui_vehicle.lineEdit_2.setText(vehicle_data[0]['vehicle_ip'])
-            self.ui_vehicle.lineEdit_3.setText(str(vehicle_data[0]['load_capacity']))
+            self.ui_ok.checkBox.setChecked(False)
+        self.ui_ok.buttonBox.accepted.disconnect()
+        self.ui_ok.buttonBox.accepted.connect(lambda: self.vehicle_action(item,action="edit"))
+        self.ui_ok.buttonBox.rejected.connect(self.ui_ok.close)
+        self.ui_ok.show()
 
-    # 提交车辆管理结果
-    def vehicle(self):
-        manager_action=self.ui_vehicle.comboBox.currentText()
-        if manager_action=="增加车辆":
-            self.vehicle_add()
-        if manager_action=="修改车辆":
-            self.vehicle_update()
-        if manager_action=="删除车辆":
-            self.vehicle_delete()
+    def vehicle_action(self, item, action):
+        """处理车辆操作"""
+        if action == "edit":
+            self.vehicle_update(item)
+        elif action == "add":
+            self.vehicle_add(item)
+        elif action == "remove":
+            self.vehicle_remove(item)
+
+    def vehicle_update(self,item):
+        """更新车辆信息"""
+        if item and item.parent() is not None:
+            item.setText(1, self.ui_ok.lineEdit.text())
+            item.setText(2, self.ui_ok.lineEdit_2.text())
+            item.setText(3, self.ui_ok.lineEdit_3.text())
+            item.setText(4, "1" if self.ui_ok.checkBox.isChecked() else "0")
+            if self.validate_ip_address(item.text(2)):
+                if self.validate_load_weight(weight=item.text(3)):
+                        self.database.update_vehicle_data(vehicle_number=item.text(1), 
+                                                        vehicle_ip=item.text(2), 
+                                                        vehicle_load_capacity=item.text(3), 
+                                                        vehicle_available=item.text(4))
+
+    def vehicle_remove(self,item):
+        """删除车辆信息"""
+        if item and item.parent() is not None:
+            item.parent().removeChild(item)
+            self.database.delete_vehicle_data(vehicle_number=item.text(1))
+
+    def vehicle_add(self,item):
+        """添加车辆信息"""
+        self.ui_ok.lineEdit.setEnabled(True)
+        self.ui_ok.buttonBox.accepted.disconnect()
+        self.ui_ok.buttonBox.accepted.connect(lambda: self.vehicle_add_confirm(item))
+        self.ui_ok.buttonBox.rejected.connect(self.ui_ok.close)
+        self.ui_ok.show()
         
-    # 新增车辆，先检测车辆编号是否存在，ip是否有效
-    def vehicle_add(self):
-        vehicle_exists=self.database.get_vehicle_data(vehicle_number=self.ui_vehicle.lineEdit.text(), 
-                                                                    vehicle_type=self.ui_vehicle.comboBox_2.currentText())
-        if self.validate_ip_address(self.ui_vehicle.lineEdit_2.text()):
-            if self.validate_load_weight(weight=self.ui_vehicle.lineEdit_3.text()):
-                if self.ui_vehicle.lineEdit.text()!="":
-                    if not vehicle_exists:
-                        self.database.insert_vehicle_data(vehicle_number=self.ui_vehicle.lineEdit.text(), 
-                                                        vehicle_type=self.ui_vehicle.comboBox_2.currentText(), 
-                                                        vehicle_ip=self.ui_vehicle.lineEdit_2.text(), 
-                                                        load_capacity=self.ui_vehicle.lineEdit_3.text())
-                    else :
-                        QMessageBox.warning(self.ui_vehicle, "警告", "车辆已存在，无法添加！")
-                else:
-                    QMessageBox.warning(self.ui_vehicle, "警告", "车辆编号不能为空！")
-
-    # 修改车辆
-    def vehicle_update(self):
-        self.database.update_vehicle_data(vehicle_number=self.ui_vehicle.comboBox_3.currentText(), 
-                                        vehicle_type=self.ui_vehicle.comboBox_2.currentText(), 
-                                        vehicle_ip=self.ui_vehicle.lineEdit_2.text(), 
-                                        load_capacity=self.ui_vehicle.lineEdit_3.text())
-    # 删除车辆
-    def vehicle_delete(self):
-        self.database.delete_vehicle_data(vehicle_number=self.ui_vehicle.comboBox_3.currentText())
-    
+    def vehicle_add_confirm(self,item):
+        """确认添加车辆信息"""  
+              
+        new_item = QTreeWidgetItem(item.parent())
+        new_item.setText(1, self.ui_ok.lineEdit.text())
+        new_item.setText(2, self.ui_ok.lineEdit_2.text())
+        new_item.setText(3, self.ui_ok.lineEdit_3.text())
+        new_item.setText(4, "1" if self.ui_ok.checkBox.isChecked() else "0")
+        if item and item.parent() is not None:
+            item.parent().addChild(new_item)
+            vehicle_type = item.parent().text(0)
+        if item is not None and item.parent() is None:
+            item.addChild(new_item)
+            vehicle_type = item.text(0)
+            vehicle_exists=self.database.get_vehicle_data(vehicle_number=new_item.text(1), 
+                                                                    vehicle_type=vehicle_type)
+            if self.validate_ip_address(new_item.text(2)):
+                if self.validate_load_weight(weight=new_item.text(3)):
+                    if new_item.text(1)!="":
+                        if not vehicle_exists:
+                            self.database.insert_vehicle_data(vehicle_number=new_item.text(1), 
+                                                            vehicle_type=vehicle_type,
+                                                            vehicle_ip=new_item.text(2), 
+                                                            vehicle_load_capacity=new_item.text(3), 
+                                                            vehicle_available=new_item.text(4))
+                        else :
+                            QMessageBox.warning(self.ui_vehicle, "警告", "车辆已存在，无法添加！")
+                    else:
+                        QMessageBox.warning(self.ui_vehicle, "警告", "车辆编号不能为空！")
     def validate_ip_address(self,ip):
         """检测IP地址是否符合规范"""
         # IP地址正则表达式

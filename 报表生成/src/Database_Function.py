@@ -35,7 +35,8 @@ class DatabaseManager:
                     vehicle_number INTEGER NOT NULL,
                     vehicle_type TEXT NOT NULL,
                     vehicle_ip TEXT NOT NULL,
-                    vehicle_load_capacity TEXT NOT NULL DEFAULT '0'
+                    vehicle_load_capacity TEXT NOT NULL DEFAULT '0',
+                    vehicle_available BOOLEAN NOT NULL DEFAULT 1
                 )
             ''')
             self.connection.commit()
@@ -66,12 +67,12 @@ class DatabaseManager:
                
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP和载重
-    def insert_vehicle_data(self, vehicle_number, vehicle_type="unkonwn", vehicle_ip="unkonwn", load_capacity=0):
+    def insert_vehicle_data(self, vehicle_number, vehicle_type="unkonwn", vehicle_ip="unkonwn", vehicle_load_capacity=0, vehicle_available=True):
         try:
             self.cursor.execute('''
-                INSERT INTO vehicle_data (vehicle_number, vehicle_type, vehicle_ip, vehicle_load_capacity)
-                VALUES (?, ?, ?, ?)
-            ''', (vehicle_number, vehicle_type, vehicle_ip, load_capacity))
+                INSERT INTO vehicle_data (vehicle_number, vehicle_type, vehicle_ip, vehicle_load_capacity, vehicle_available)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (vehicle_number, vehicle_type, vehicle_ip, vehicle_load_capacity, vehicle_available))
             self.connection.commit()
             print("Vehicle data inserted successfully")
         except sqlite3.Error as e:
@@ -91,8 +92,8 @@ class DatabaseManager:
             print(f"Error inserting vehicle record: {e}")
     
     #获取车辆数据
-    # 返回指定指定条件的的车辆数据，可选条件有车辆编号、车辆类型
-    def get_vehicle_data(self, vehicle_number=None, vehicle_type=None):
+    # 返回指定指定条件的的车辆数据，可选条件有车辆编号、车辆类型、是否可用
+    def get_vehicle_data(self, vehicle_number=None, vehicle_type=None, available=None):
         query = "SELECT * FROM vehicle_data WHERE 1=1"
         params = []
         
@@ -103,7 +104,9 @@ class DatabaseManager:
         if vehicle_type is not None:
             query += " AND vehicle_type = ?"
             params.append(vehicle_type)
-        
+        if available is not None:
+            query += " AND available = ?"
+            params.append(available)
         try:
             self.cursor.execute(query, tuple(params))
             rows = self.cursor.fetchall()
@@ -115,7 +118,8 @@ class DatabaseManager:
                     'vehicle_number': row[1],
                     'vehicle_type': row[2],
                     'vehicle_ip': row[3],
-                    'load_capacity': row[4]
+                    'load_capacity': row[4],
+                    'available': row[5]
                 }
                 vehicles.append(vehicle)
             return vehicles
@@ -229,7 +233,7 @@ class DatabaseManager:
         
     # 更新车辆数据
     # 允许更新车辆类型、车辆IP和载重
-    def update_vehicle_data(self, vehicle_number, vehicle_type=None, vehicle_ip=None, load_capacity=None):
+    def update_vehicle_data(self, vehicle_number, vehicle_type=None, vehicle_ip=None, vehicle_load_capacity=None, vehicle_available=None):
         """
         Args:
         vehicle_number (int): 车辆编号
@@ -243,7 +247,8 @@ class DatabaseManager:
         update_fields = {
             'vehicle_type': vehicle_type,
             'vehicle_ip': vehicle_ip,
-            'vehicle_load_capacity': load_capacity,
+            'vehicle_load_capacity': vehicle_load_capacity,
+            'vehicle_available': vehicle_available,
         }
         
         update_data = {k: v for k, v in update_fields.items() if v is not None}
