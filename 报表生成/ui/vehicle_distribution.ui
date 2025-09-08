@@ -48,22 +48,10 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
-           <widget class="QLabel" name="label_shift">
-            <property name="styleSheet">
-             <string>font-weight: bold; font-size: 14px;</string>
-            </property>
-            <property name="text">
-             <string>选择班次</string>
-            </property>
-           </widget>
+           <widget class="QDateEdit" name="dateEdit"/>
           </item>
           <item>
            <widget class="QComboBox" name="comboBox">
-            <item>
-             <property name="text">
-              <string/>
-             </property>
-            </item>
             <item>
              <property name="text">
               <string>二班</string>
@@ -188,7 +176,7 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>4</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_2">
            <attribute name="title">

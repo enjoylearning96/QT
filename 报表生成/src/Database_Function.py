@@ -45,7 +45,7 @@ class DatabaseManager:
             print(f"Error creating table: {e}")
             
         # 创建车辆记录表
-        # 车辆记录表包含车辆编号、日期、铲斗ID、车辆状态、车辆工作时长车辆产量和班次
+        # 车辆记录表包含车辆编号、日期、铲斗ID、车辆状态、故障类型，车辆工作时长车辆产量和班次
         # 日期格式为YYYY-MM-DD，默认值为当前日期
         try:
             self.cursor.execute('''
@@ -55,6 +55,9 @@ class DatabaseManager:
                     date TEXT NOT NULL DEFAULT CURRENT_DATE,
                     shovel_id TEXT,
                     vehicle_status TEXT NOT NULL DEFAULT '待令',
+                    vehicle_fault_type TEXT DEFAULT '无',
+                    vehicle_fault_description TEXT DEFAULT '无',
+                    vehicle_fault_duration REAL DEFAULT 0.0,
                     vehicle_operating_hours REAL NOT NULL DEFAULT 0.0,
                     vehicle_production REAL NOT NULL DEFAULT 0.0,
                     shift TEXT NOT NULL DEFAULT '一班' CHECK(shift IN ('一班', '二班', '三班'))
@@ -64,10 +67,32 @@ class DatabaseManager:
             print("Table 'vehicle_records' created successfully")
         except sqlite3.Error as e:
             print(f"Error creating table: {e}")
-               
+        
+        # 创建班次记录表
+        # 班次记录表包含日期，班次，使用电铲，车数，产量
+        try:
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS shift_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL DEFAULT CURRENT_DATE,
+                    shift TEXT NOT NULL CHECK(shift IN ('一班', '二班', '三班')),
+                    shovel_id TEXT,
+                    vehicle_count INTEGER NOT NULL DEFAULT 0,
+                    production REAL NOT NULL DEFAULT 0.0
+                )
+            ''')
+            self.connection.commit()
+            print("Table 'shift_records' created successfully")
+        except sqlite3.Error as e:
+            print(f"Error creating table: {e}")
+
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP和载重
     def insert_vehicle_data(self, vehicle_number, vehicle_type="unkonwn", vehicle_ip="unkonwn", vehicle_load_capacity=0, vehicle_available=True):
+        existing_vehicle = self.get_vehicle_data(vehicle_number=vehicle_number)
+        if existing_vehicle:
+            print(f"Vehicle {vehicle_number} already exists.")
+            return
         try:
             self.cursor.execute('''
                 INSERT INTO vehicle_data (vehicle_number, vehicle_type, vehicle_ip, vehicle_load_capacity, vehicle_available)
@@ -80,20 +105,45 @@ class DatabaseManager:
     
     # 插入车辆记录
     # 车辆记录包含车辆编号、日期、铲斗ID、车辆状态、车辆工作时长、车辆产量和班次
-    def insert_vehicle_record(self, vehicle_number, date, shovel_id, vehicle_status, vehicle_operating_hours, vehicle_production, shift):
-        try:
+    def insert_vehicle_record(self, vehicle_number, date, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, 
+                              vehicle_fault_duration=0, vehicle_operating_hours=0, vehicle_production=0, shift="一班"):
+        existing_record = self.get_vehicle_records(vehicle_number=vehicle_number, date=date, shift=shift)
+        if existing_record:
+            print(f"Record for vehicle {vehicle_number} on {date} for shift {shift} already exists.")
+            self.update_vehicle_record(vehicle_number=vehicle_number, date=date, shift=shift, vehicle_status=vehicle_status, shovel_id=shovel_id, vehicle_fault_type=vehicle_fault_type, vehicle_fault_description=vehicle_fault_description,
+                                        vehicle_fault_duration=vehicle_fault_duration, vehicle_operating_hours=vehicle_operating_hours, vehicle_production=vehicle_production)
+            return
+        try:         
             self.cursor.execute('''
-                INSERT INTO vehicle_records (vehicle_number, shovel_id, date, vehicle_status, vehicle_operating_hours, vehicle_production, shift)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (vehicle_number, shovel_id, vehicle_status, vehicle_operating_hours, vehicle_production, shift))
+                INSERT INTO vehicle_records (vehicle_number, shovel_id, date, vehicle_status, vehicle_fault_type, vehicle_fault_description, 
+                vehicle_fault_duration, vehicle_operating_hours, vehicle_production, shift)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (vehicle_number, shovel_id, date, vehicle_status, vehicle_fault_type, vehicle_fault_description,
+                  vehicle_fault_duration, vehicle_operating_hours, vehicle_production, shift))
             self.connection.commit()
             print("Vehicle record inserted successfully")
         except sqlite3.Error as e:
             print(f"Error inserting vehicle record: {e}")
     
+    # 插入班次记录
+    def insert_shift_record(self, date, shift, shovel_id, vehicle_count=0, production=0):
+        existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
+        if existing_record:
+            print(f"Shift record for {date} {shift}  {shovel_id} already exists.")
+            self.update_shift_record(date=date, shift=shift, shovel_id=shovel_id, vehicle_count=vehicle_count, production=production)
+        try:
+            self.cursor.execute('''
+                INSERT INTO shift_records (date, shift, shovel_id, vehicle_count, production)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (date, shift, shovel_id, vehicle_count, production))
+            self.connection.commit()
+            print("Shift record inserted successfully")
+        except sqlite3.Error as e:
+            print(f"Error inserting shift record: {e}")
+    
     #获取车辆数据
     # 返回指定指定条件的的车辆数据，可选条件有车辆编号、车辆类型、是否可用
-    def get_vehicle_data(self, vehicle_number=None, vehicle_type=None, available=None):
+    def get_vehicle_data(self, vehicle_number=None, vehicle_type=None, vehicle_available=None):
         query = "SELECT * FROM vehicle_data WHERE 1=1"
         params = []
         
@@ -104,9 +154,9 @@ class DatabaseManager:
         if vehicle_type is not None:
             query += " AND vehicle_type = ?"
             params.append(vehicle_type)
-        if available is not None:
-            query += " AND available = ?"
-            params.append(available)
+        if vehicle_available is not None:
+            query += " AND vehicle_available = ?"
+            params.append(vehicle_available)
         try:
             self.cursor.execute(query, tuple(params))
             rows = self.cursor.fetchall()
@@ -119,7 +169,7 @@ class DatabaseManager:
                     'vehicle_type': row[2],
                     'vehicle_ip': row[3],
                     'load_capacity': row[4],
-                    'available': row[5]
+                    'vehicle_available': row[5]
                 }
                 vehicles.append(vehicle)
             return vehicles
@@ -129,7 +179,7 @@ class DatabaseManager:
         
     #获取车辆记录
     # 返回指定条件的车辆记录，可选条件有车辆编号、日期、铲斗ID、车辆状态
-    def get_vehicle_records(self, vehicle_number=None, date=None, shovel_id=None, vehicle_status=None):
+    def get_vehicle_records(self, vehicle_number=None, date=None, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, shift=None):
         query = "SELECT * FROM vehicle_records WHERE 1=1"
         params = []
         
@@ -148,7 +198,19 @@ class DatabaseManager:
         if vehicle_status is not None:
             query += " AND vehicle_status = ?"
             params.append(vehicle_status)
-        
+
+        if vehicle_fault_type is not None:
+            query += " AND vehicle_fault_type = ?"
+            params.append(vehicle_fault_type)
+
+        if vehicle_fault_description is not None:
+            query += " AND vehicle_fault_description = ?"
+            params.append(vehicle_fault_description)
+
+        if shift is not None:
+            query += " AND shift = ?"
+            params.append(shift)
+
         try:
             self.cursor.execute(query, tuple(params))
             rows = self.cursor.fetchall()
@@ -161,9 +223,11 @@ class DatabaseManager:
                     'date': row[2],
                     'shovel_id': row[3],
                     'vehicle_status': row[4],
-                    'vehicle_operating_hours': row[5],
-                    'vehicle_production': row[6],
-                    'shift': row[7]
+                    'vehicle_fault_type': row[5],
+                    'vehicle_fault_description': row[6],
+                    'vehicle_operating_hours': row[7],
+                    'vehicle_production': row[8],
+                    'shift': row[9]
                 }
                 vehicles.append(vehicle)
             return vehicles
@@ -171,10 +235,48 @@ class DatabaseManager:
             print(f"Error fetching vehicle records: {e}")
             return []
 
+    #获取班次记录
+    # 返回指定条件的班次记录，可选条件有日期、班次、铲斗ID
+    def get_shift_records(self, date=None, shift=None, shovel_id=None):
+        query = "SELECT * FROM shift_records WHERE 1=1"
+        params = []
+        
+        if date is not None:
+            query += " AND date = ?"
+            params.append(date)
+        
+        if shift is not None:
+            query += " AND shift = ?"
+            params.append(shift)
+        
+        if shovel_id is not None:
+            query += " AND shovel_id = ?"
+            params.append(shovel_id)
+        
+        try:
+            self.cursor.execute(query, tuple(params))
+            rows = self.cursor.fetchall()
+            # 转换为字典列表（更易处理）
+            shifts = []
+            for row in rows:
+                shift_record = {
+                    'id': row[0],
+                    'date': row[1],
+                    'shift': row[2],
+                    'shovel_id': row[3],
+                    'vehicle_count': row[4],
+                    'production': row[5]
+                }
+                shifts.append(shift_record)
+            return shifts
+        except sqlite3.Error as e:
+            print(f"Error fetching shift records: {e}")
+            return []
     
     # 更新车辆记录
     # 允许更新车辆状态、铲斗id，车辆工作时长、车辆产量和班次
-    def update_vehicle_record(self, record_id, vehicle_status=None, shovel_id=None, vehicle_operating_hours=None, vehicle_production=None):
+    def update_vehicle_record(self, vehicle_number, date, shift, vehicle_status=None, shovel_id=None, vehicle_fault_type=None, vehicle_fault_description=None, 
+                              vehicle_fault_duration=None, vehicle_operating_hours=None, vehicle_production=None):
         """
         Args:
         record_id (int): 要更新的记录ID
@@ -187,7 +289,14 @@ class DatabaseManager:
             bool: 更新是否成功
         """
         # 检查是否有任何字段需要更新
+        existing_record = self.get_vehicle_records(vehicle_number=vehicle_number, date=date, shift=shift)
+        if not existing_record:
+            print(f"没有找到车辆 {vehicle_number} 在 {shift} 班次的记录")
+            return False
         update_fields = {
+            'vehicle_fault_type': vehicle_fault_type,
+            'vehicle_fault_description': vehicle_fault_description,
+            'vehicle_fault_duration': vehicle_fault_duration,
             'status': vehicle_status,
             'shovel_id': shovel_id,
             'operating_hours': vehicle_operating_hours,
@@ -208,22 +317,23 @@ class DatabaseManager:
             set_clause = ', '.join([f"{field} = ?" for field in update_data.keys()])
             # 构建参数列表
             # 例如，如果更新了status和production, params 会是 [new_status, new_production]
-            # 还需要添加记录ID作为WHERE条件
+           
             params = list(update_data.values())
             # 将记录ID添加到参数列表中
-            params.append(record_id)  # 添加记录ID作为WHERE条件
+            params.append(vehicle_number)  # 添加车辆编号作为WHERE条件
+            params.append(shift)  # 添加班次作为WHERE条件
             # 构建完整的UPDATE语句
-            # 例如: UPDATE vehicle_records SET status = ?, production = ? WHERE id = ?
-            query = f"UPDATE vehicle_records SET {set_clause} WHERE id = ?"
-            
+            # 例如: UPDATE vehicle_records SET status = ?, production = ? WHERE vehicle_number = ? AND date = ? AND shift = ?
+            query = f"UPDATE vehicle_records SET {set_clause} WHERE vehicle_number = ? AND date = ? AND shift = ?"
+
             self.cursor.execute(query, tuple(params))
             self.connection.commit()
             
             if self.cursor.rowcount == 0:
-                print(f"警告: 没有找到ID为{record_id}的记录")
+                print("警告: 没有找到记录")
                 return False
-                
-            print(f"成功更新ID为{record_id}的记录")
+
+            print("成功更新记录")
             return True
             
         except sqlite3.Error as e:
@@ -244,6 +354,11 @@ class DatabaseManager:
         Returns:
             bool: 更新是否成功
         """
+        existing_vehicle = self.get_vehicle_data(vehicle_number=vehicle_number)
+        if not existing_vehicle:
+            print(f"没有找到车辆 {vehicle_number} 的记录")
+            return False
+
         update_fields = {
             'vehicle_type': vehicle_type,
             'vehicle_ip': vehicle_ip,
@@ -277,12 +392,84 @@ class DatabaseManager:
             print(f"数据库错误: {e}")
             self.connection.rollback()
             return False
+    
+    # 更新班次记录
+    def update_shift_record(self, date, shift, shovel_id, vehicle_count=None, production=None):
+        existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
+        if not existing_record:
+            print(f"没有找到 {date} {shift} {shovel_id} 的班次记录")
+            return False
+
+        update_fields = {
+            'vehicle_count': vehicle_count,
+            'production': production,
+        }
+        
+        update_data = {k: v for k, v in update_fields.items() if v is not None}
+        
+        if not update_data:
+            print("警告: 没有提供任何更新字段")
+            return False
+
+        try:
+            set_clause = ', '.join([f"{field} = ?" for field in update_data.keys()])
+            params = list(update_data.values())
+            params.append(date)  # 添加日期作为WHERE条件
+            params.append(shift)  # 添加班次作为WHERE条件
+            params.append(shovel_id)  # 添加铲斗ID作为WHERE条件
+            query = f"UPDATE shift_records SET {set_clause} WHERE date = ? AND shift = ? AND shovel_id = ?"
+            
+            self.cursor.execute(query, tuple(params))
+            self.connection.commit()
+            
+            if self.cursor.rowcount == 0:
+                print(f"警告: 没有找到 {date} {shift} {shovel_id} 的班次记录")
+                return False
+                
+            print(f"成功更新 {date} {shift} {shovel_id} 的班次记录")
+            return True
+            
+        except sqlite3.Error as e:
+            print(f"数据库错误: {e}")
+            self.connection.rollback()
+            return False
         
     # 移除车辆数据
     def delete_vehicle_data(self, vehicle_number):
+        existing_vehicle = self.get_vehicle_data(vehicle_number=vehicle_number)
+        if not existing_vehicle:
+            print(f"没有找到车辆 {vehicle_number} 的记录")
+            return False
+
         try:
             self.cursor.execute("DELETE FROM vehicle_data WHERE vehicle_number = ?", (vehicle_number,))
             self.connection.commit()
         except sqlite3.Error as e:
             print(f"Error delete vehicle data: {e}")
+            return False
         
+    # 移除车辆记录
+    def delete_vehicle_record(self, vehicle_number, date, shift):
+        existing_record = self.get_vehicle_records(vehicle_number=vehicle_number, date=date, shift=shift)
+        if not existing_record:
+            print(f"没有找到车辆 {vehicle_number} 在 {shift} 班次的记录")
+            return False
+        try:
+            self.cursor.execute("DELETE FROM vehicle_records WHERE vehicle_number = ? AND date = ? AND shift = ?", (vehicle_number, date, shift))
+            self.connection.commit()
+        except sqlite3.Error as e:
+            print(f"Error delete vehicle record: {e}")
+            return False
+     
+    # 移除班次记录
+    def delete_shift_record(self, date, shift, shovel_id):
+        existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
+        if not existing_record:
+            print(f"没有找到 {date} {shift} {shovel_id} 的班次记录")
+            return False
+        try:
+            self.cursor.execute("DELETE FROM shift_records WHERE date = ? AND shift = ? AND shovel_id = ?", (date, shift, shovel_id))
+            self.connection.commit()
+        except sqlite3.Error as e:
+            print(f"Error delete shift record: {e}")
+            return False   
