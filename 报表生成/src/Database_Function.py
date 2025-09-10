@@ -69,7 +69,9 @@ class DatabaseManager:
             print(f"Error creating table: {e}")
         
         # 创建班次记录表
-        # 班次记录表包含日期，班次，使用电铲，车数，产量
+        # 班次记录表包含日期，班次，使用电铲，车数，产量，月累计产量，月计划，年度累计运行时间，年度累计拉运车数，年度累计产量,工长
+        # 若现有表格列不够则添加新列
+        
         try:
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS shift_records (
@@ -78,7 +80,13 @@ class DatabaseManager:
                     shift TEXT NOT NULL CHECK(shift IN ('一班', '二班', '三班')),
                     shovel_id TEXT,
                     vehicle_count INTEGER NOT NULL DEFAULT 0,
-                    production REAL NOT NULL DEFAULT 0.0
+                    production REAL NOT NULL DEFAULT 0.0,
+                    monthly_accumulated_production REAL NOT NULL DEFAULT 0.0,
+                    monthly_plan REAL NOT NULL DEFAULT 0.0,
+                    yearly_accumulated_operating_time REAL NOT NULL DEFAULT 0.0,
+                    yearly_accumulated_vehicle_count INTEGER NOT NULL DEFAULT 0,
+                    yearly_accumulated_production REAL NOT NULL DEFAULT 0.0,
+                    foreman TEXT NOT NULL DEFAULT '无'
                 )
             ''')
             self.connection.commit()
@@ -126,16 +134,28 @@ class DatabaseManager:
             print(f"Error inserting vehicle record: {e}")
     
     # 插入班次记录
-    def insert_shift_record(self, date, shift, shovel_id, vehicle_count=0, production=0):
+    def insert_shift_record(self, date, shift, shovel_id, vehicle_count = 0, production = 0.0, 
+                            monthly_accumulated_production = 0.0, monthly_plan = 0.0, yearly_accumulated_operating_time = 0.0, 
+                            yearly_accumulated_vehicle_count = 0, yearly_accumulated_production = 0.0, foreman="无"):
         existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
         if existing_record:
             print(f"Shift record for {date} {shift}  {shovel_id} already exists.")
-            self.update_shift_record(date=date, shift=shift, shovel_id=shovel_id, vehicle_count=vehicle_count, production=production)
+            self.update_shift_record(date=date, shift=shift, shovel_id=shovel_id,
+                                     vehicle_count=vehicle_count, production=production, 
+                                     monthly_accumulated_production=monthly_accumulated_production,
+                                     monthly_plan=monthly_plan,
+                                     yearly_accumulated_production=yearly_accumulated_production,
+                                     yearly_accumulated_operating_time=yearly_accumulated_operating_time,
+                                     yearly_accumulated_vehicle_count=yearly_accumulated_vehicle_count,
+                                     foreman=foreman)
+            return
         try:
             self.cursor.execute('''
-                INSERT INTO shift_records (date, shift, shovel_id, vehicle_count, production)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (date, shift, shovel_id, vehicle_count, production))
+                INSERT INTO shift_records (date, shift, shovel_id, vehicle_count, production, 
+                monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time,
+                yearly_accumulated_vehicle_count, yearly_accumulated_production, foreman)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date, shift, shovel_id, vehicle_count, production, monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time, yearly_accumulated_vehicle_count, yearly_accumulated_production, foreman))
             self.connection.commit()
             print("Shift record inserted successfully")
         except sqlite3.Error as e:
@@ -236,8 +256,8 @@ class DatabaseManager:
             return []
 
     #获取班次记录
-    # 返回指定条件的班次记录，可选条件有日期、班次、铲斗ID
-    def get_shift_records(self, date=None, shift=None, shovel_id=None):
+    # 返回指定条件的班次记录，可选条件有日期、班次、铲斗ID,工长
+    def get_shift_records(self, date=None, shift=None, shovel_id=None, foreman=None):
         query = "SELECT * FROM shift_records WHERE 1=1"
         params = []
         
@@ -252,6 +272,10 @@ class DatabaseManager:
         if shovel_id is not None:
             query += " AND shovel_id = ?"
             params.append(shovel_id)
+            
+        if foreman is not None:
+            query += " AND foreman = ?"
+            params.append(foreman)
         
         try:
             self.cursor.execute(query, tuple(params))
@@ -265,7 +289,13 @@ class DatabaseManager:
                     'shift': row[2],
                     'shovel_id': row[3],
                     'vehicle_count': row[4],
-                    'production': row[5]
+                    'production': row[5],
+                    'monthly_accumulated_production': row[6],
+                    'monthly_plan': row[7],
+                    'yearly_accumulated_operating_time': row[8],
+                    'yearly_accumulated_vehicle_count': row[9],
+                    'yearly_accumulated_production': row[10],
+                    'foreman': row[11]
                 }
                 shifts.append(shift_record)
             return shifts
@@ -394,7 +424,13 @@ class DatabaseManager:
             return False
     
     # 更新班次记录
-    def update_shift_record(self, date, shift, shovel_id, vehicle_count=None, production=None):
+    def update_shift_record(self, date, shift, shovel_id, vehicle_count=None,
+                            production=None, monthly_accumulated_production=None, monthly_plan=None,
+                            yearly_accumulated_operating_time=None, yearly_accumulated_vehicle_count=None,
+                            yearly_accumulated_production=None, foreman=None):
+        """
+        更新班次记录
+        """
         existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
         if not existing_record:
             print(f"没有找到 {date} {shift} {shovel_id} 的班次记录")
@@ -403,6 +439,12 @@ class DatabaseManager:
         update_fields = {
             'vehicle_count': vehicle_count,
             'production': production,
+            'monthly_accumulated_production': monthly_accumulated_production,
+            'monthly_plan': monthly_plan,
+            'yearly_accumulated_operating_time': yearly_accumulated_operating_time,
+            'yearly_accumulated_vehicle_count': yearly_accumulated_vehicle_count,
+            'yearly_accumulated_production': yearly_accumulated_production,
+            'foreman': foreman,
         }
         
         update_data = {k: v for k, v in update_fields.items() if v is not None}
@@ -411,7 +453,7 @@ class DatabaseManager:
             print("警告: 没有提供任何更新字段")
             return False
 
-        try:
+        try: 
             set_clause = ', '.join([f"{field} = ?" for field in update_data.keys()])
             params = list(update_data.values())
             params.append(date)  # 添加日期作为WHERE条件

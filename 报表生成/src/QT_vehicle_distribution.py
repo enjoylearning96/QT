@@ -122,8 +122,9 @@ class VehicleDistribution(QMainWindow):
         
         self.selected_shovels = selected_shovels
         for shovel_id in self.selected_shovels:
-            self.database.insert_shift_record(self, date = QDate.currentDate().toString("yyyy-MM-dd"),
-                                              shift = self.comboBox.currentText(),, 
+            self.database.insert_shift_record(self, 
+                                              date = QDate.currentDate().toString("yyyy-MM-dd"),
+                                              shift = self.comboBox.currentText(),
                                               shovel_id = shovel_id,
                                               vehicle_count = 0,
                                               production = 0)

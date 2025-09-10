@@ -2,15 +2,15 @@
 Author: 李晓乐
 Date: 2025-08-05 18:25:05
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-08-25 22:14:52
+LastEditTime: 2025-09-10 21:15:16
 FilePath: \QT\报表生成\src\QT_Function.py
 Description: 
 
 Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
 '''
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt6.QtCore import QObject, pyqtSignal, QDate
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox,QTabWidget, QDateEdit, QPlainTextEdit,QWidget
+from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTime
 from PyQt6 import uic
 from Database_Function import DatabaseManager
 from QT_vehicle_distribution import VehicleDistribution
@@ -43,6 +43,8 @@ class UI(QMainWindow):
         self.ui_main.setStyleSheet(self.style)
                
         self.connectload()
+        self.inittime()
+        self.statusbar=self.ui_main.statusbar
         
         #重定向
         # self.emitter=Emitter()
@@ -55,12 +57,47 @@ class UI(QMainWindow):
     def connectload(self):
         self.ui_main.action_2.triggered.connect(self.show_vehicle_manager)
         self.ui_main.action.triggered.connect(self.show_vehicle_distribution)
+        self.ui_main.pushButton.clicked.connect(self.show_vehicle_distribution)
+        self.ui_main.pushButton_2.clicked.connect(self.show_vehicle_distribution)
+        self.ui_main.pushButton_5.clicked.connect(self.show_vehicle_distribution)
         self.ui_main.dateEdit_3.setDate(QDate.currentDate())
-        
+    
+    #初始化时间
+    def inittime(self):
+        current_time = QTime.currentTime()
+        # 若为一班，二班三班时间应为昨天
+        if current_time < QTime(8, 30):
+            self.ui_main.dateEdit_2.setDate(QDate.currentDate().addDays(-1))
+            self.ui_main.dateEdit.setDate(QDate.currentDate().addDays(-1))
+        else:
+            self.ui_main.dateEdit_2.setDate(QDate.currentDate())
+            self.ui_main.dateEdit.setDate(QDate.currentDate())
+            
     #加载车辆分配窗口
     def show_vehicle_distribution(self):
         window_vehicle_distribution = VehicleDistribution(self.database)
         window_vehicle_distribution.show()
+        window_vehicle_distribution.pushButton.clicked.connect(self.ui_main_update)
+
+    # 车辆分配完成后更新主界面
+    def ui_main_update(self):
+        for i in range(self.tabWidget.count()):
+            tab = self.tabWidget.widget(i)
+            # 获取当前班次启动电铲数据
+            selected_shovels_data=self.database.get_shift_records(
+                date=tab.findChild(QTabWidget).widget(0).findChild(QDateEdit).date().toString("yyyy-MM-dd"), 
+                shift=self.tabWidget.tabText(i), 
+                )
+            # 更新电铲数据，查询到几条消息就代表有几个电铲启用
+            if selected_shovels_data :
+                # 清空现有电铲标签页
+                tab.findChild(QTabWidget).widget(0).findChild(QTabWidget).clear()
+                num=len(selected_shovels_data)
+    
+                for k in range(num):
+                    tab.findChild(QTabWidget).widget(0).findChild(QTabWidget).addTab(QPlainTextEdit(), "")
+                    tab.findChild(QTabWidget).widget(0).findChild(QTabWidget).setTabText(k, f"电铲 {selected_shovels_data[k]['shovel_id']}")
+
 
     #加载车辆管理窗口    
     def show_vehicle_manager(self):
