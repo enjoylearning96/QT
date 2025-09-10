@@ -105,12 +105,14 @@ class DatabaseManager:
                     transportation_area_status TEXT DEFAULT '无',
                     unloading_area_status TEXT DEFAULT '无',
                     standby_area_status TEXT DEFAULT '无',
-   	                vehicle_status TEXT DEFAULT '无',
+                    vehicle_status TEXT DEFAULT '无',
                     other_matters TEXT DEFAULT '无'
                 )
             ''')
             self.connection.commit()
             print("Table 'handover_records' created successfully")
+        except sqlite3.Error as e:
+            print(f"Error creating table: {e}")
 
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP和载重
