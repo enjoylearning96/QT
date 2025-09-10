@@ -69,9 +69,7 @@ class DatabaseManager:
             print(f"Error creating table: {e}")
         
         # 创建班次记录表
-        # 班次记录表包含日期，班次，使用电铲，车数，产量，月累计产量，月计划，年度累计运行时间，年度累计拉运车数，年度累计产量,工长
-        # 若现有表格列不够则添加新列
-        
+        # 班次记录表包含日期，班次，使用电铲，车数，产量，月累计产量，月计划，年度累计运行时间，年度累计拉运车数，年度累计产量,工长        
         try:
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS shift_records (
@@ -93,6 +91,26 @@ class DatabaseManager:
             print("Table 'shift_records' created successfully")
         except sqlite3.Error as e:
             print(f"Error creating table: {e}")
+            
+        # 创建交接班记录表
+        # 交接班记录表包含日期，班次，交班人，装载区情况，运输区情况，卸载区情况，备停区情况，车辆情况，其他事项
+        try:
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS handover_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL DEFAULT CURRENT_DATE,
+                    shift TEXT NOT NULL CHECK(shift IN ('一班', '二班', '三班')),
+                    handover_person TEXT NOT NULL,
+                    loading_area_status TEXT DEFAULT '无',
+                    transportation_area_status TEXT DEFAULT '无',
+                    unloading_area_status TEXT DEFAULT '无',
+                    standby_area_status TEXT DEFAULT '无',
+   	                vehicle_status TEXT DEFAULT '无',
+                    other_matters TEXT DEFAULT '无'
+                )
+            ''')
+            self.connection.commit()
+            print("Table 'handover_records' created successfully")
 
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP和载重
@@ -161,6 +179,18 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error inserting shift record: {e}")
     
+    # 插入交接班记录
+    def insert_handover_record(self, date, shift, handover_person, loading_area_status="无", transportation_area_status="无", unloading_area_status="无", standby_area_status="无", vehicle_status="无", other_matters="无"):
+        try:
+            self.cursor.execute('''
+                INSERT INTO handover_records (date, shift, handover_person, loading_area_status, transportation_area_status, unloading_area_status, standby_area_status, vehicle_status, other_matters)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date, shift, handover_person, loading_area_status, transportation_area_status, unloading_area_status, standby_area_status, vehicle_status, other_matters))
+            self.connection.commit()
+            print("Handover record inserted successfully")
+        except sqlite3.Error as e:
+            print(f"Error inserting handover record: {e}")
+
     #获取车辆数据
     # 返回指定指定条件的的车辆数据，可选条件有车辆编号、车辆类型、是否可用
     def get_vehicle_data(self, vehicle_number=None, vehicle_type=None, vehicle_available=None):
@@ -303,6 +333,47 @@ class DatabaseManager:
             print(f"Error fetching shift records: {e}")
             return []
     
+    #获取交接班记录
+    # 返回指定条件的交接班记录，可选条件有日期、班次、交班人
+    def get_handover_records(self, date=None, shift=None, handover_person=None):
+        query = "SELECT * FROM handover_records WHERE 1=1"
+        params = []
+        
+        if date is not None:
+            query += " AND date = ?"
+            params.append(date)
+        
+        if shift is not None:
+            query += " AND shift = ?"
+            params.append(shift)
+        
+        if handover_person is not None:
+            query += " AND handover_person = ?"
+            params.append(handover_person)
+        
+        try:
+            self.cursor.execute(query, tuple(params))
+            rows = self.cursor.fetchall()
+            # 转换为字典列表（更易处理）
+            handovers = []
+            for row in rows:
+                handover_record = {
+                    'id': row[0],
+                    'date': row[1],
+                    'shift': row[2],
+                    'handover_person': row[3],
+                    'loading_area_status': row[4],
+                    'transportation_area_status': row[5],
+                    'unloading_area_status': row[6],
+                    'standby_area_status': row[7],
+                    'vehicle_status': row[8],
+                    'other_matters': row[9]
+                }
+                handovers.append(handover_record)
+            return handovers
+        except sqlite3.Error as e:
+            print(f"Error fetching handover records: {e}")
+            return []
     # 更新车辆记录
     # 允许更新车辆状态、铲斗id，车辆工作时长、车辆产量和班次
     def update_vehicle_record(self, vehicle_number, date, shift, vehicle_status=None, shovel_id=None, vehicle_fault_type=None, vehicle_fault_description=None, 
@@ -475,7 +546,56 @@ class DatabaseManager:
             print(f"数据库错误: {e}")
             self.connection.rollback()
             return False
+    
+    # 更新交接班记录
+    def update_handover_record(self, date, shift,handover_person=None, loading_area_status=None, 
+                               transportation_area_status=None, unloading_area_status=None, 
+                               standby_area_status=None, vehicle_status=None, other_matters=None):
+        """
+        更新交接班记录
+        """
+        existing_record = self.get_handover_records(date=date, shift=shift)
+        if not existing_record:
+            print(f"没有找到 {date} {shift} 的交接班记录")
+            return False
+
+        update_fields = {
+            'handover_person': handover_person,
+            'loading_area_status': loading_area_status,
+            'transportation_area_status': transportation_area_status,
+            'unloading_area_status': unloading_area_status,
+            'standby_area_status': standby_area_status,
+            'vehicle_status': vehicle_status,
+            'other_matters': other_matters,
+        }
         
+        update_data = {k: v for k, v in update_fields.items() if v is not None}
+        
+        if not update_data:
+            print("警告: 没有提供任何更新字段")
+            return False
+
+        try: 
+            set_clause = ', '.join([f"{field} = ?" for field in update_data.keys()])
+            params = list(update_data.values())
+            params.append(date)  # 添加日期作为WHERE条件
+            params.append(shift)  # 添加班次作为WHERE条件
+            query = f"UPDATE handover_records SET {set_clause} WHERE date = ? AND shift = ?"
+            
+            self.cursor.execute(query, tuple(params))
+            self.connection.commit()
+            
+            if self.cursor.rowcount == 0:
+                print(f"警告: 没有找到 {date} {shift} 的交接班记录")
+                return False
+
+            print(f"成功更新 {date} {shift} 的交接班记录")
+            return True
+            
+        except sqlite3.Error as e:
+            print(f"数据库错误: {e}")
+            self.connection.rollback()
+            return False    
     # 移除车辆数据
     def delete_vehicle_data(self, vehicle_number):
         existing_vehicle = self.get_vehicle_data(vehicle_number=vehicle_number)
