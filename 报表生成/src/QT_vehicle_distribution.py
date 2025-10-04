@@ -61,6 +61,8 @@ class VehicleDistribution(QMainWindow):
     # 初始化车辆列表
     def init_vehicle_list(self):
         
+            self.get_vehicle_records(date=None, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, shift=None)
+        
         for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-930E",vehicle_available=1):
             item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
             item.setCheckState(Qt.CheckState.Unchecked)
@@ -122,7 +124,7 @@ class VehicleDistribution(QMainWindow):
         
         self.selected_shovels = selected_shovels
         for shovel_id in self.selected_shovels:
-            self.database.insert_shift_record(self, 
+            self.database.insert_shift_record( 
                                               date = QDate.currentDate().toString("yyyy-MM-dd"),
                                               shift = self.comboBox.currentText(),
                                               shovel_id = shovel_id,
