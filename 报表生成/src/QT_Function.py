@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-08-05 18:25:05
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-09-10 21:15:16
+LastEditTime: 2025-10-09 20:22:10
 FilePath: \QT\报表生成\src\QT_Function.py
 Description: 
 
@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox,QTabWidget, Q
 from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTime
 from PyQt6 import uic
 from Database_Function import DatabaseManager
-from QT_vehicle_distribution import VehicleDistribution
+from QT_vehicle_distribution_v2 import VehicleDistribution
 from QT_vehicle_manager import VehicleManager
 from pathlib import Path
 

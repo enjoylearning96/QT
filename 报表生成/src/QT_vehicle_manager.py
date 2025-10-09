@@ -40,8 +40,8 @@ class VehicleManager(QMainWindow):
                 child_item = QTreeWidgetItem(parent_item)
                 child_item.setText(1, str(vehicle_data["vehicle_number"]))
                 child_item.setText(2, str(vehicle_data["vehicle_ip"]))
-                child_item.setText(3, str(vehicle_data["load_capacity"]))
-                child_item.setText(4, str(vehicle_data["available"]))
+                child_item.setText(3, str(vehicle_data["vehicle_load_capacity"]))
+                child_item.setText(4, str(vehicle_data["vehicle_available"]))
     def on_item_double_clicked(self, item, column):
         """双击二级节点进行编辑"""
         # 只处理二级节点（有父节点的节点）
@@ -84,6 +84,8 @@ class VehicleManager(QMainWindow):
                         self.database.update_vehicle_data(vehicle_number=item.text(1), 
                                                         vehicle_ip=item.text(2), 
                                                         vehicle_load_capacity=item.text(3), 
+                                                        vehicle_teamviewer_password=self.ui_ok.lineEdit_4.text(),
+                                                        vehicle_vnc_password=self.ui_ok.lineEdit_5.text(),
                                                         vehicle_available=item.text(4))
 
     def vehicle_remove(self,item):
@@ -103,33 +105,49 @@ class VehicleManager(QMainWindow):
     def vehicle_add_confirm(self,item):
         """确认添加车辆信息"""  
               
-        new_item = QTreeWidgetItem(item.parent())
+        new_item = QTreeWidgetItem()
         new_item.setText(1, self.ui_ok.lineEdit.text())
         new_item.setText(2, self.ui_ok.lineEdit_2.text())
         new_item.setText(3, self.ui_ok.lineEdit_3.text())
         new_item.setText(4, "1" if self.ui_ok.checkBox.isChecked() else "0")
+        # 针对当前指针位于具体车辆情况
         if item and item.parent() is not None:
             item.parent().addChild(new_item)
             vehicle_type = item.parent().text(0)
+        # 针对当前指针位于车型情况
         if item is not None and item.parent() is None:
             item.addChild(new_item)
             vehicle_type = item.text(0)
-            vehicle_exists=self.database.get_vehicle_data(vehicle_number=new_item.text(1), 
+        # 检测车辆是否已存在
+        vehicle_exists=self.database.get_vehicle_data(vehicle_number=new_item.text(1), 
                                                                     vehicle_type=vehicle_type)
-            if self.validate_ip_address(new_item.text(2)):
-                if self.validate_load_weight(weight=new_item.text(3)):
-                    if new_item.text(1)!="":
-                        if not vehicle_exists:
-                            self.database.insert_vehicle_data(vehicle_number=new_item.text(1), 
+        
+        if vehicle_exists:
+            QMessageBox.warning(self.ui_vehicle, "警告", "车辆已存在，无法添加！")
+            return False
+        else:
+            # 判断是否为添加停车区域 
+            if vehicle_type == "停车区域":
+               self.database.insert_vehicle_data(vehicle_number=new_item.text(1), 
+                                                        vehicle_type=vehicle_type,
+                                                        vehicle_available=new_item.text(4)) 
+            else:    
+                if not self.validate_ip_address(new_item.text(2)):
+                    return False
+                if not self.validate_load_weight(weight=new_item.text(3)):
+                    return False
+                if new_item.text(1) == "":
+                    QMessageBox.warning(self.ui_vehicle, "警告", "车辆编号不能为空！")
+                    return False
+                self.database.insert_vehicle_data(vehicle_number=new_item.text(1), 
                                                             vehicle_type=vehicle_type,
                                                             vehicle_ip=new_item.text(2), 
-                                                            vehicle_load_capacity=new_item.text(3), 
+                                                            vehicle_load_capacity=new_item.text(3),
+                                                            vehicle_teamviewer_password=self.ui_ok.lineEdit_4.text(),
+                                                            vehicle_vnc_password=self.ui_ok.lineEdit_5.text(), 
                                                             vehicle_available=new_item.text(4))
-                        else :
-                            QMessageBox.warning(self.ui_vehicle, "警告", "车辆已存在，无法添加！")
-                    else:
-                        QMessageBox.warning(self.ui_vehicle, "警告", "车辆编号不能为空！")
-    def validate_ip_address(self,ip):
+            return True
+    def validate_ip_address(self, ip):
         """检测IP地址是否符合规范"""
         # IP地址正则表达式
         ip_pattern = r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$'

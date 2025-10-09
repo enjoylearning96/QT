@@ -23,29 +23,56 @@
       <height>501</height>
      </rect>
     </property>
+    <property name="headerHidden">
+     <bool>false</bool>
+    </property>
+    <attribute name="headerCascadingSectionResizes">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="headerDefaultSectionSize">
+     <number>150</number>
+    </attribute>
+    <attribute name="headerStretchLastSection">
+     <bool>true</bool>
+    </attribute>
     <column>
      <property name="text">
       <string>车型</string>
+     </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
      </property>
     </column>
     <column>
      <property name="text">
       <string>车辆编号</string>
      </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>ip</string>
+     </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
      </property>
     </column>
     <column>
      <property name="text">
       <string>载重量</string>
      </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>是否可用</string>
+     </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
      </property>
     </column>
     <item>
@@ -89,8 +116,16 @@
       <string/>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>停车区域</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </item>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>

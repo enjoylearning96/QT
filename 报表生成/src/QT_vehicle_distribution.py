@@ -61,7 +61,7 @@ class VehicleDistribution(QMainWindow):
     # 初始化车辆列表
     def init_vehicle_list(self):
         
-            self.get_vehicle_records(date=None, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, shift=None)
+        self.get_vehicle_records(date=None, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, shift=None)
         
         for vehicle_data in self.database.get_vehicle_data(vehicle_type="矿卡-930E",vehicle_available=1):
             item = QListWidgetItem(f"{vehicle_data['vehicle_number']}")
