@@ -128,15 +128,26 @@ class DatabaseManager:
         existing_record = self.get_vehicle_records(vehicle_number=vehicle_number, date=date, shift=shift)
         if existing_record:
             print(f"Record for vehicle {vehicle_number} on {date} for shift {shift} already exists.")
-            self.update_vehicle_record(vehicle_number=vehicle_number, date=date, shift=shift, vehicle_status=vehicle_status, shovel_id=shovel_id, vehicle_fault_type=vehicle_fault_type, vehicle_fault_description=vehicle_fault_description,
-                                        vehicle_fault_duration=vehicle_fault_duration, vehicle_operating_hours=vehicle_operating_hours, vehicle_production=vehicle_production)
+            self.update_vehicle_record(vehicle_number=vehicle_number, 
+                                       date=date, 
+                                       shift=shift, 
+                                       vehicle_status=vehicle_status, 
+                                       shovel_id=shovel_id, 
+                                       vehicle_fault_type=vehicle_fault_type, 
+                                       vehicle_fault_description=vehicle_fault_description,
+                                       vehicle_fault_solution=vehicle_fault_solution,
+                                        vehicle_fault_duration=vehicle_fault_duration, 
+                                        vehicle_operating_hours=vehicle_operating_hours, 
+                                        vehicle_production=vehicle_production,
+                                        vehicle_parking_location=vehicle_parking_location
+                                        )
             return
         try:
             #先判断内容是否为空，为空则不插入对应项
             insert_fields = {         
-                "vehicle_number": vehicle_number,
-                "shovel_id": shovel_id,
+                "vehicle_number": vehicle_number,               
                 "date": date,
+                "shovel_id": shovel_id,
                 "vehicle_status": vehicle_status,
                 "vehicle_fault_type": vehicle_fault_type,
                 "vehicle_fault_description": vehicle_fault_description,
@@ -280,8 +291,8 @@ class DatabaseManager:
                 vehicle = {
                     'id': row[0],
                     'vehicle_number': row[1],
-                    'shovel_id': row[2],
-                    'date': row[3],
+                    'date': row[2],
+                    'shovel_id': row[3],
                     'vehicle_status': row[4],
                     'vehicle_fault_type': row[5],
                     'vehicle_fault_description': row[6],
@@ -300,12 +311,12 @@ class DatabaseManager:
 
 
     # 获取最新车辆记录,查询可用条件为车辆编号，电铲id，停放位置
-    def get_vehicle_lastestrecord(self, type=None, vehicle_number=None, shovel_id=None, vehicle_parking_location=None):
+    def get_vehicle_lastestrecord(self, vehicle_status=None, vehicle_number=None, shovel_id=None, vehicle_parking_location=None):
         query = "SELECT * FROM vehicle_records WHERE 1=1"
         params = []
-        if type is not None:
+        if vehicle_status is not None:
             query += " AND vehicle_status = ?"
-            params.append(type)
+            params.append(vehicle_status)
         if vehicle_number is not None:
             query += " AND vehicle_number = ?"
             params.append(vehicle_number)
@@ -323,8 +334,8 @@ class DatabaseManager:
                 vehicle = {
                     'id': row[0],
                     'vehicle_number': row[1],
-                    'shovel_id': row[2],
-                    'date': row[3],
+                    'date': row[2],
+                    'shovel_id': row[3],
                     'vehicle_status': row[4],
                     'vehicle_fault_type': row[5],
                     'vehicle_fault_description': row[6],
@@ -389,8 +400,19 @@ class DatabaseManager:
             return []
     
     # 更新车辆记录
-    def update_vehicle_record(self, vehicle_number, date, shift, vehicle_status=None, shovel_id=None, vehicle_fault_type=None, vehicle_fault_description=None, 
-                              vehicle_fault_duration=None, vehicle_operating_hours=None, vehicle_production=None):
+    def update_vehicle_record(self, vehicle_number,
+                              date,
+                              shift,
+                              vehicle_status=None, 
+                              shovel_id=None,
+                              vehicle_fault_type=None, 
+                              vehicle_fault_description=None,
+                              vehicle_fault_solution=None, 
+                              vehicle_fault_duration=None, 
+                              vehicle_operating_hours=None, 
+                              vehicle_production=None,
+                              vehicle_parking_location=None
+                              ):
         """
         Args:
         record_id (int): 要更新的记录ID
@@ -408,13 +430,15 @@ class DatabaseManager:
             print(f"没有找到车辆 {vehicle_number} 在 {shift} 班次的记录")
             return False
         update_fields = {
-            'vehicle_fault_type': vehicle_fault_type,
-            'vehicle_fault_description': vehicle_fault_description,
-            'vehicle_fault_duration': vehicle_fault_duration,
-            'status': vehicle_status,
-            'shovel_id': shovel_id,
-            'operating_hours': vehicle_operating_hours,
-            'production': vehicle_production,
+                "shovel_id": shovel_id,
+                "vehicle_status": vehicle_status,
+                "vehicle_fault_type": vehicle_fault_type,
+                "vehicle_fault_description": vehicle_fault_description,
+                "vehicle_fault_solution": vehicle_fault_solution,
+                "vehicle_fault_duration": vehicle_fault_duration,
+                "vehicle_operating_hours": vehicle_operating_hours,
+                "vehicle_production": vehicle_production,
+                "vehicle_parking_location": vehicle_parking_location
         }
         
         # 过滤掉None值
@@ -434,7 +458,9 @@ class DatabaseManager:
            
             params = list(update_data.values())
             # 将记录ID添加到参数列表中
+            
             params.append(vehicle_number)  # 添加车辆编号作为WHERE条件
+            params.append(date)  # 添加日期作为WHERE条件
             params.append(shift)  # 添加班次作为WHERE条件
             # 构建完整的UPDATE语句
             # 例如: UPDATE vehicle_records SET status = ?, production = ? WHERE vehicle_number = ? AND date = ? AND shift = ?

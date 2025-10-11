@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>vehicledistribution</class>
+ <widget class="QMainWindow" name="vehicledistribution">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -29,7 +29,10 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>电铲分配</string>
+  </property>
+  <property name="accessibleName">
+   <string/>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="layoutWidget">
@@ -71,6 +74,13 @@
               <string>一班</string>
              </property>
             </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_search">
+            <property name="text">
+             <string>查询</string>
+            </property>
            </widget>
           </item>
          </layout>
@@ -163,7 +173,7 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>4</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
