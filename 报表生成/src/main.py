@@ -2,13 +2,13 @@
 Author: 李晓乐
 Date: 2025-07-25 22:06:11
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-10-11 13:57:04
+LastEditTime: 2025-10-14 22:41:08
 FilePath: \QT\报表生成\src\main.py
 Description: 
 
 Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
 '''
-from QT_Function import  UI
+from QT_Function_v2 import  UI
 from PyQt6.QtWidgets import QApplication
 import sys
 

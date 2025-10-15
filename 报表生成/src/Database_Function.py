@@ -83,6 +83,9 @@ class DatabaseManager:
                     shift TEXT NOT NULL CHECK(shift IN ('一班', '二班', '三班')),
                     shovel_id TEXT,
                     vehicle_count INTEGER NOT NULL DEFAULT 0,
+                    operating_time REAL NOT NULL DEFAULT 0.0,
+                    operating_length REAL NOT NULL DEFAULT 0.0,
+                    vehicle_available_count INTEGER NOT NULL DEFAULT 0,
                     production REAL NOT NULL DEFAULT 0.0,
                     monthly_accumulated_production REAL NOT NULL DEFAULT 0.0,
                     monthly_plan REAL NOT NULL DEFAULT 0.0,
@@ -91,10 +94,10 @@ class DatabaseManager:
                     yearly_accumulated_production REAL NOT NULL DEFAULT 0.0,
                     foreman TEXT NOT NULL DEFAULT '无',
                     loading_area_status TEXT DEFAULT '无',
-                    transportation_area_status TEXT DEFAULT '无',
+                    parkingandroad_area_status TEXT DEFAULT '无',
                     unloading_area_status TEXT DEFAULT '无',
-                    standby_area_status TEXT DEFAULT '无',
-                    vehicle_status TEXT DEFAULT '无',
+                    operating_status TEXT DEFAULT '无',
+                    operating_effect_factor TEXT DEFAULT '无',
                     other_matters TEXT DEFAULT '无'
                 )
             ''')
@@ -172,16 +175,23 @@ class DatabaseManager:
             print(f"Error inserting vehicle record: {e}")
     
     # 插入班次记录
-    def insert_shift_record(self, date, shift, shovel_id, vehicle_count = 0, production = 0.0, 
+    def insert_shift_record(self, date, shift, shovel_id, vehicle_count = 0, operating_time = 0.0, operating_length = 0.0, vehicle_available_count = 0, 
+                            production = 0.0, 
                             monthly_accumulated_production = 0.0, monthly_plan = 0.0, yearly_accumulated_operating_time = 0.0, 
                             yearly_accumulated_vehicle_count = 0, yearly_accumulated_production = 0.0, foreman="无",
-                            loading_area_status="无", transportation_area_status="无", unloading_area_status="无", 
-                            standby_area_status="无", vehicle_status="无", other_matters="无"):
+                            loading_area_status="无", parkingandroad_area_status="无", unloading_area_status="无", 
+                            operating_status="无", operating_effect_factor="无", other_matters="无"):
         existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
         if existing_record:
             print(f"Shift record for {date} {shift}  {shovel_id} already exists.")
-            self.update_shift_record(date=date, shift=shift, shovel_id=shovel_id,
-                                     vehicle_count=vehicle_count, production=production, 
+            self.update_shift_record(date=date, 
+                                     shift=shift, 
+                                     shovel_id=shovel_id,
+                                     vehicle_count=vehicle_count, 
+                                     operating_time=operating_time,
+                                     operating_length=operating_length,
+                                     vehicle_available_count=vehicle_available_count,
+                                     production=production, 
                                      monthly_accumulated_production=monthly_accumulated_production,
                                      monthly_plan=monthly_plan,
                                      yearly_accumulated_production=yearly_accumulated_production,
@@ -189,21 +199,39 @@ class DatabaseManager:
                                      yearly_accumulated_vehicle_count=yearly_accumulated_vehicle_count,
                                      foreman=foreman,
                                      loading_area_status=loading_area_status,
-                                     transportation_area_status=transportation_area_status,
+                                     parkingandroad_area_status=parkingandroad_area_status,
                                      unloading_area_status=unloading_area_status,
-                                     standby_area_status=standby_area_status,
-                                     vehicle_status=vehicle_status,
+                                     operating_status=operating_status,
+                                     operating_effect_factor=operating_effect_factor,
                                      other_matters=other_matters)
             return
         try:
             self.cursor.execute('''
-                INSERT INTO shift_records (date, shift, shovel_id, vehicle_count, production, 
-                monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time,
-                yearly_accumulated_vehicle_count, yearly_accumulated_production, foreman,
-                loading_area_status, transportation_area_status, unloading_area_status, standby_area_status,
-                vehicle_status, other_matters)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (date, shift, shovel_id, vehicle_count, production, monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time, yearly_accumulated_vehicle_count, yearly_accumulated_production, foreman, loading_area_status, transportation_area_status, unloading_area_status, standby_area_status, vehicle_status, other_matters))
+                INSERT INTO shift_records (date,
+                shift, 
+                shovel_id, 
+                vehicle_count, 
+                operating_time, 
+                operating_length, 
+                vehicle_available_count, 
+                production, 
+                monthly_accumulated_production, 
+                monthly_plan, 
+                yearly_accumulated_operating_time,
+                yearly_accumulated_vehicle_count, 
+                yearly_accumulated_production, 
+                foreman,
+                loading_area_status, 
+                parkingandroad_area_status, 
+                unloading_area_status, 
+                operating_status,
+                operating_effect_factor, 
+                other_matters)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date, shift, shovel_id, vehicle_count, operating_time, operating_length, vehicle_available_count, production, 
+                  monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time, yearly_accumulated_vehicle_count, 
+                  yearly_accumulated_production, foreman, loading_area_status, parkingandroad_area_status, unloading_area_status, operating_status, 
+                  operating_effect_factor, other_matters))
             self.connection.commit()
             print("Shift record inserted successfully")
         except sqlite3.Error as e:
@@ -385,13 +413,22 @@ class DatabaseManager:
                     'shift': row[2],
                     'shovel_id': row[3],
                     'vehicle_count': row[4],
-                    'production': row[5],
-                    'monthly_accumulated_production': row[6],
-                    'monthly_plan': row[7],
-                    'yearly_accumulated_operating_time': row[8],
-                    'yearly_accumulated_vehicle_count': row[9],
-                    'yearly_accumulated_production': row[10],
-                    'foreman': row[11]
+                    'operating_time': row[5],
+                    'operating_length': row[6],
+                    'vehicle_available_count': row[7],
+                    'production': row[8],
+                    'monthly_accumulated_production': row[9],
+                    'monthly_plan': row[10],
+                    'yearly_accumulated_operating_time': row[11],
+                    'yearly_accumulated_vehicle_count': row[12],
+                    'yearly_accumulated_production': row[13],
+                    'foreman': row[14],
+                    'loading_area_status': row[15],
+                    'parkingandroad_area_status': row[16],
+                    'unloading_area_status': row[17],
+                    'operating_status': row[18],
+                    'operating_effect_factor': row[19],
+                    'other_matters': row[20]
                 }
                 shifts.append(shift_record)
             return shifts
@@ -535,12 +572,12 @@ class DatabaseManager:
             return False
     
     # 更新班次记录
-    def update_shift_record(self, date, shift, shovel_id, vehicle_count=None,
+    def update_shift_record(self, date, shift, shovel_id, vehicle_count=None,operating_time = None, operating_length = None, vehicle_available_count = None,
                             production=None, monthly_accumulated_production=None, monthly_plan=None,
                             yearly_accumulated_operating_time=None, yearly_accumulated_vehicle_count=None,
                             yearly_accumulated_production=None, foreman=None,
-                            loading_area_status=None, transportation_area_status=None, unloading_area_status=None,
-                            standby_area_status=None, vehicle_status=None, other_matters=None):
+                            loading_area_status=None, parkingandroad_area_status=None, unloading_area_status=None,
+                            operating_status=None, operating_effect_factor=None, other_matters=None):
         """
         更新班次记录
         """
@@ -550,7 +587,10 @@ class DatabaseManager:
             return False
 
         update_fields = {
-            'vehicle_count': vehicle_count,
+            'vehicle_count': vehicle_count,           
+            'operating_time': operating_time,
+            'operating_length': operating_length,
+            'vehicle_available_count': vehicle_available_count,
             'production': production,
             'monthly_accumulated_production': monthly_accumulated_production,
             'monthly_plan': monthly_plan,
@@ -559,10 +599,10 @@ class DatabaseManager:
             'yearly_accumulated_production': yearly_accumulated_production,
             'foreman': foreman,
             'loading_area_status': loading_area_status,
-            'transportation_area_status': transportation_area_status,
+            'parkingandroad_area_status': parkingandroad_area_status,
             'unloading_area_status': unloading_area_status,
-            'standby_area_status': standby_area_status,
-            'vehicle_status': vehicle_status,
+            'operating_status': operating_status,
+            'operating_effect_factor': operating_effect_factor,
             'other_matters': other_matters
         }
         
