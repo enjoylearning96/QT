@@ -63,7 +63,7 @@
      <bool>true</bool>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="erban">
      <property name="sizePolicy">
@@ -300,7 +300,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_foreman_2"/>
+           <widget class="QLineEdit" name="lineEdit_foreman_2">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -532,12 +536,19 @@
    </property>
    <widget class="QMenu" name="menu_2">
     <property name="title">
-     <string>设置</string>
+     <string>车辆管理与分配</string>
     </property>
     <addaction name="action_2"/>
     <addaction name="action"/>
    </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>计划与完成情况</string>
+    </property>
+    <addaction name="action_shovel_plan"/>
+   </widget>
    <addaction name="menu_2"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="sizePolicy">
@@ -585,6 +596,11 @@
   <action name="action">
    <property name="text">
     <string>车辆分配</string>
+   </property>
+  </action>
+  <action name="action_shovel_plan">
+   <property name="text">
+    <string>电铲</string>
    </property>
   </action>
  </widget>

@@ -3,7 +3,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
-def create_precise_mine_report(filename):
+def ReportGenerator(database,date,shift,filename):
     # 创建Excel写入器
     writer = pd.ExcelWriter(filename, engine='openpyxl')
     
@@ -203,7 +203,4 @@ def create_precise_mine_report(filename):
     
     # 保存文件
     wb.save(filename)
-
-# 生成文件
-create_precise_mine_report("7月31日二班-8月01日一班_精确版.xlsx")
-print("精确匹配原文件格式的Excel已生成: 7月31日二班-8月01日一班_精确版.xlsx")
+    wb.close()

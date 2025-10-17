@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-08-05 18:25:05
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-10-15 20:58:33
+LastEditTime: 2025-10-18 03:31:55
 FilePath: \QT\报表生成\src\QT_Function_v2.py
 Description: 
 
@@ -15,7 +15,11 @@ from PyQt6 import uic
 from Database_Function import DatabaseManager
 from QT_vehicle_distribution_v2 import VehicleDistribution
 from QT_vehicle_manager import VehicleManager
+from QT_shovel_plan import ShovelPlan
+# from Report_Function import ReportGenerator
 from pathlib import Path
+import re
+import time
 
 # 自定义一个继承自QObject的类，用于重定向stdout
 # class Emitter(QObject):
@@ -44,6 +48,7 @@ class UI(QMainWindow):
         self.ui_main.setStyleSheet(self.style)
         # 用作tab范本
         self.database=DatabaseManager()
+        self.path_report=(Path(__file__).parent.parent / "log")
         self.init_shift_dic()        
         self.connectload()
 
@@ -96,17 +101,17 @@ class UI(QMainWindow):
                     "shovels_used" : {}
                     }
         }
-        
-        
-            
+                  
     #建立控件间的链接
     def connectload(self):
         self.action_2.triggered.connect(self.show_vehicle_manager)
         self.action.triggered.connect(self.show_vehicle_distribution)
+        self.action_shovel_plan.triggered.connect(self.show_shovel_plan)
         for shift, info in self.shifts.items():
             info['pushButton_save'].clicked.connect(self.save_to_database)
             info['pushButton_distribution'].clicked.connect(self.show_vehicle_distribution)
             info['dateEdit'].dateChanged.connect(self.ui_main_update)
+            # info['pushButton_report'].clicked.connect(self.generate_report,date=info['dateEdit'].date().toString("yyyy-MM-dd"),shift=shift)
             
     #初始化时间
     def init_time(self):
@@ -146,6 +151,13 @@ class UI(QMainWindow):
                 
                 is_used = self.database.get_vehicle_records(date = date, shovel_id=shovel['vehicle_number'], shift=shift)
                 if is_used:
+                    vehicle_available_count = len(is_used)
+                    self.database.insert_shift_record(
+                        date=date,
+                        shift=shift,
+                        shovel_id=shovel['vehicle_number'],
+                        vehicle_available_count=vehicle_available_count
+                    )
                     tab = self.create_new_tab()
                     tabwidget.addTab(tab, f"{shovel['vehicle_number']}")
                     self.shifts[shift]['shovels_used'][shovel['vehicle_number']] = tab                     
@@ -165,7 +177,9 @@ class UI(QMainWindow):
                             tab.textEdit_parkingandroad.setPlainText(shift_data['parkingandroad_area_status'])
                             tab.textEdit_dump.setPlainText(shift_data['unloading_area_status'])
                             tab.textEdit_opertingstatus.setPlainText(shift_data['operating_status'])
+                            tab.textEdit_opertingstatus.textChanged.connect(lambda: self.on_text_changed(tab.textEdit_opertingstatus.toPlainText(), tab.lineEdit_operting_time))
                             tab.textEdit_other.setPlainText(shift_data['other_matters'])
+                            tab.lineEdit_vehicle_available_count.setText(str(shift_data['vehicle_available_count']))
                             # 用于存储影响因素
                             info['lineEdit_shift'].setText(shift_data['operating_effect_factor'])
 
@@ -173,7 +187,6 @@ class UI(QMainWindow):
     # 保存界面数据至数据库
     def save_to_database(self):
         for shift, info in self.shifts.items():
-            i=0
             for shovel_id, elements in info['shovels_used'].items():
                 date = info['dateEdit'].date().toString("yyyy-MM-dd")
                 foreman = info['lineEdit_foreman'].text().strip()
@@ -182,6 +195,7 @@ class UI(QMainWindow):
                 operating_length = elements.lineEdit_opertinglength.text().strip()
                 vehicle_available_count = elements.lineEdit_vehicle_available_count.text().strip()
                 production = elements.lineEdit_production.text().strip()
+                daily_accumulated_production = self.get_daily_accumulated_production(shift.date)
                 loading_area_status = elements.textEdit_dig.toPlainText().strip()
                 parkingandroad_area_status = elements.textEdit_parkingandroad.toPlainText().strip()
                 unloading_area_status = elements.textEdit_dump.toPlainText().strip()
@@ -198,6 +212,7 @@ class UI(QMainWindow):
                     operating_length=float(operating_length) if operating_length.replace('.','',1).isdigit() else 0.0,
                     vehicle_available_count=int(vehicle_available_count) if vehicle_available_count.isdigit() else 0,
                     production=float(production) if production.replace('.','',1).isdigit() else 0.0,
+                    daily_accumulated_production = float(daily_accumulated_production) if daily_accumulated_production.replace('.','',1).isdigit() else 0.0,
                     loading_area_status=loading_area_status,
                     parkingandroad_area_status=parkingandroad_area_status,
                     unloading_area_status=unloading_area_status,
@@ -216,7 +231,37 @@ class UI(QMainWindow):
     #加载车辆管理窗口    
     def show_vehicle_manager(self):
         window_vehicle_manager = VehicleManager(self.database)
-        window_vehicle_manager.show()
+    
+    # 加载电铲计划窗口
+    def show_shovel_plan(self):
+        window_shovel_plan = ShovelPlan(self.database)
+        
+    # 报表生成
+    def generate_report(self,date,shift):
+        pass
+        # report = ReportGenerator(self.database,date,shift,filename=self.path_report / f"{date}_{shift}_报表.xlsx")
+        # QMessageBox.information(self, "提示", "报表生成中，敬请期待！")
+        
+    # 运行时长判断
+    def on_text_changed(self, operating_status, destination):
+        try:
+            lines = operating_status.split('\n')
+            total_minutes = 0
+            for line in lines:
+                if "安全员" in line:
+                    time_match = re.match(r'(\d{2}:\d{2})-(\d{2}:\d{2})', line)
+                    if time_match:
+                        start = time_match.group(1)
+                        end = time_match.group(2)
+                        start_minutes = int(start[:2]) * 60 + int(start[3:])
+                        end_minutes = int(end[:2]) * 60 + int(end[3:])
+                        total_minutes += (end_minutes - start_minutes)
+            total_hours = round(total_minutes / 60, 1)
+            destination.setText(str(total_hours))
+            return True
+        except Exception as e:
+            print(f"运行时长计算错误: {e}")
+            return False
     # 更新状态栏显示    
     def update_status_bar(self, text):        
         self.statusbar.showMessage(text.strip())

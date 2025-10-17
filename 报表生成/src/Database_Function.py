@@ -87,6 +87,8 @@ class DatabaseManager:
                     operating_length REAL NOT NULL DEFAULT 0.0,
                     vehicle_available_count INTEGER NOT NULL DEFAULT 0,
                     production REAL NOT NULL DEFAULT 0.0,
+                    daily_accumulated_production REAL NOT NULL DEFAULT 0.0,
+                    daily_plan REAL NOT NULL DEFAULT 0.0,
                     monthly_accumulated_production REAL NOT NULL DEFAULT 0.0,
                     monthly_plan REAL NOT NULL DEFAULT 0.0,
                     yearly_accumulated_operating_time REAL NOT NULL DEFAULT 0.0,
@@ -176,7 +178,7 @@ class DatabaseManager:
     
     # 插入班次记录
     def insert_shift_record(self, date, shift, shovel_id, vehicle_count = 0, operating_time = 0.0, operating_length = 0.0, vehicle_available_count = 0, 
-                            production = 0.0, 
+                            production = 0.0, daily_accumulated_production = 0.0, daily_plan = 0.0,
                             monthly_accumulated_production = 0.0, monthly_plan = 0.0, yearly_accumulated_operating_time = 0.0, 
                             yearly_accumulated_vehicle_count = 0, yearly_accumulated_production = 0.0, foreman="无",
                             loading_area_status="无", parkingandroad_area_status="无", unloading_area_status="无", 
@@ -192,6 +194,8 @@ class DatabaseManager:
                                      operating_length=operating_length,
                                      vehicle_available_count=vehicle_available_count,
                                      production=production, 
+                                     daily_accumulated_production=daily_accumulated_production,
+                                     daily_plan=daily_plan,
                                      monthly_accumulated_production=monthly_accumulated_production,
                                      monthly_plan=monthly_plan,
                                      yearly_accumulated_production=yearly_accumulated_production,
@@ -214,7 +218,9 @@ class DatabaseManager:
                 operating_time, 
                 operating_length, 
                 vehicle_available_count, 
-                production, 
+                production,
+                daily_accumulated_production,
+                daily_plan,
                 monthly_accumulated_production, 
                 monthly_plan, 
                 yearly_accumulated_operating_time,
@@ -227,8 +233,9 @@ class DatabaseManager:
                 operating_status,
                 operating_effect_factor, 
                 other_matters)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (date, shift, shovel_id, vehicle_count, operating_time, operating_length, vehicle_available_count, production, 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date, shift, shovel_id, vehicle_count, operating_time, operating_length, vehicle_available_count, production, daily_accumulated_production,
+                  daily_plan,
                   monthly_accumulated_production, monthly_plan, yearly_accumulated_operating_time, yearly_accumulated_vehicle_count, 
                   yearly_accumulated_production, foreman, loading_area_status, parkingandroad_area_status, unloading_area_status, operating_status, 
                   operating_effect_factor, other_matters))
@@ -417,18 +424,20 @@ class DatabaseManager:
                     'operating_length': row[6],
                     'vehicle_available_count': row[7],
                     'production': row[8],
-                    'monthly_accumulated_production': row[9],
-                    'monthly_plan': row[10],
-                    'yearly_accumulated_operating_time': row[11],
-                    'yearly_accumulated_vehicle_count': row[12],
-                    'yearly_accumulated_production': row[13],
-                    'foreman': row[14],
-                    'loading_area_status': row[15],
-                    'parkingandroad_area_status': row[16],
-                    'unloading_area_status': row[17],
-                    'operating_status': row[18],
-                    'operating_effect_factor': row[19],
-                    'other_matters': row[20]
+                    'daily_accumulated_production': row[9],
+                    'daily_plan': row[10],
+                    'monthly_accumulated_production': row[11],
+                    'monthly_plan': row[12],
+                    'yearly_accumulated_operating_time': row[13],
+                    'yearly_accumulated_vehicle_count': row[14],
+                    'yearly_accumulated_production': row[15],
+                    'foreman': row[16],
+                    'loading_area_status': row[17],
+                    'parkingandroad_area_status': row[18],
+                    'unloading_area_status': row[19],
+                    'operating_status': row[20],
+                    'operating_effect_factor': row[21],
+                    'other_matters': row[22]
                 }
                 shifts.append(shift_record)
             return shifts
@@ -573,7 +582,7 @@ class DatabaseManager:
     
     # 更新班次记录
     def update_shift_record(self, date, shift, shovel_id, vehicle_count=None,operating_time = None, operating_length = None, vehicle_available_count = None,
-                            production=None, monthly_accumulated_production=None, monthly_plan=None,
+                            production=None, daily_accumulated_production=None, daily_plan=None, monthly_accumulated_production=None, monthly_plan=None,
                             yearly_accumulated_operating_time=None, yearly_accumulated_vehicle_count=None,
                             yearly_accumulated_production=None, foreman=None,
                             loading_area_status=None, parkingandroad_area_status=None, unloading_area_status=None,
@@ -592,6 +601,8 @@ class DatabaseManager:
             'operating_length': operating_length,
             'vehicle_available_count': vehicle_available_count,
             'production': production,
+            'daily_accumulated_production': daily_accumulated_production,
+            'daily_plan': daily_plan,
             'monthly_accumulated_production': monthly_accumulated_production,
             'monthly_plan': monthly_plan,
             'yearly_accumulated_operating_time': yearly_accumulated_operating_time,
