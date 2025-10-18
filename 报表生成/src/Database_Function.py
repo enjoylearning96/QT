@@ -110,8 +110,8 @@ class DatabaseManager:
 
     # 插入车辆数据
     # 车辆数据包含车辆编号、车辆类型、车辆IP,teamviewer密码，VNC密码和载重
-    def insert_vehicle_data(self, vehicle_number, vehicle_type="unkonwn", vehicle_ip="unkonwn", vehicle_load_capacity=0, 
-                            vehicle_teamviewer_password="unkonwn", vehicle_vnc_password="unkonwn", vehicle_available=True):
+    def insert_vehicle_data(self, vehicle_number, vehicle_type=None, vehicle_ip=None, vehicle_load_capacity=0, 
+                            vehicle_teamviewer_password=None, vehicle_vnc_password=None, vehicle_available=True):
         existing_vehicle = self.get_vehicle_data(vehicle_number=vehicle_number)
         if existing_vehicle:
             print(f"Vehicle {vehicle_number} already exists.")
@@ -129,23 +129,24 @@ class DatabaseManager:
     # 插入车辆记录
     # 车辆记录包含车辆编号、日期、铲斗ID、车辆状态、车辆工作时长、车辆产量和班次
     def insert_vehicle_record(self, vehicle_number, date, shovel_id=None, vehicle_status=None, vehicle_fault_type=None, vehicle_fault_description=None, 
-                              vehicle_fault_solution=None, vehicle_fault_duration=0, vehicle_operating_hours=0, vehicle_production=0, vehicle_parking_location=None, shift="一班"):
+                              vehicle_fault_solution=None, vehicle_fault_duration=None, vehicle_operating_hours=None, vehicle_production=None, vehicle_parking_location=None, shift="一班"):
         existing_record = self.get_vehicle_records(vehicle_number=vehicle_number, date=date, shift=shift)
         if existing_record:
             print(f"Record for vehicle {vehicle_number} on {date} for shift {shift} already exists.")
-            self.update_vehicle_record(vehicle_number=vehicle_number, 
-                                       date=date, 
-                                       shift=shift, 
-                                       vehicle_status=vehicle_status, 
-                                       shovel_id=shovel_id, 
-                                       vehicle_fault_type=vehicle_fault_type, 
-                                       vehicle_fault_description=vehicle_fault_description,
-                                       vehicle_fault_solution=vehicle_fault_solution,
-                                        vehicle_fault_duration=vehicle_fault_duration, 
-                                        vehicle_operating_hours=vehicle_operating_hours, 
-                                        vehicle_production=vehicle_production,
-                                        vehicle_parking_location=vehicle_parking_location
-                                        )
+            self.update_vehicle_record(
+                vehicle_number=vehicle_number, 
+                date=date, 
+                shift=shift, 
+                vehicle_status=vehicle_status, 
+                shovel_id=shovel_id, 
+                vehicle_fault_type=vehicle_fault_type, 
+                vehicle_fault_description=vehicle_fault_description,
+                vehicle_fault_solution=vehicle_fault_solution,
+                vehicle_fault_duration=vehicle_fault_duration, 
+                vehicle_operating_hours=vehicle_operating_hours, 
+                vehicle_production=vehicle_production,
+                vehicle_parking_location=vehicle_parking_location
+                )
             return
         try:
             #先判断内容是否为空，为空则不插入对应项
@@ -177,12 +178,12 @@ class DatabaseManager:
             print(f"Error inserting vehicle record: {e}")
     
     # 插入班次记录
-    def insert_shift_record(self, date, shift, shovel_id, vehicle_count = 0, operating_time = 0.0, operating_length = 0.0, vehicle_available_count = 0, 
-                            production = 0.0, daily_accumulated_production = 0.0, daily_plan = 0.0,
-                            monthly_accumulated_production = 0.0, monthly_plan = 0.0, yearly_accumulated_operating_time = 0.0, 
-                            yearly_accumulated_vehicle_count = 0, yearly_accumulated_production = 0.0, foreman="无",
-                            loading_area_status="无", parkingandroad_area_status="无", unloading_area_status="无", 
-                            operating_status="无", operating_effect_factor="无", other_matters="无"):
+    def insert_shift_record(self, date, shift, shovel_id, vehicle_count = None, operating_time = None, operating_length = None, vehicle_available_count = None, 
+                            production = None, daily_accumulated_production = None, daily_plan = None,
+                            monthly_accumulated_production = None, monthly_plan = None, yearly_accumulated_operating_time = None, 
+                            yearly_accumulated_vehicle_count = None, yearly_accumulated_production = None, foreman=None,
+                            loading_area_status=None, parkingandroad_area_status=None, unloading_area_status=None, 
+                            operating_status=None, operating_effect_factor=None, other_matters=None):
         existing_record = self.get_shift_records(date=date, shift=shift, shovel_id=shovel_id)
         if existing_record:
             print(f"Shift record for {date} {shift}  {shovel_id} already exists.")

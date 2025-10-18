@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-08-05 18:25:05
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-10-18 03:31:55
+LastEditTime: 2025-10-18 13:28:53
 FilePath: \QT\报表生成\src\QT_Function_v2.py
 Description: 
 
@@ -20,6 +20,7 @@ from QT_shovel_plan import ShovelPlan
 from pathlib import Path
 import re
 import time
+from datetime import datetime, timedelta
 
 # 自定义一个继承自QObject的类，用于重定向stdout
 # class Emitter(QObject):
@@ -195,32 +196,101 @@ class UI(QMainWindow):
                 operating_length = elements.lineEdit_opertinglength.text().strip()
                 vehicle_available_count = elements.lineEdit_vehicle_available_count.text().strip()
                 production = elements.lineEdit_production.text().strip()
-                daily_accumulated_production = self.get_daily_accumulated_production(shift.date)
+                
+                daily_accumulated_production,daily_plan,monthly_accumulated_production,monthly_plan,yearly_accumulated_operating_time,yearly_accumulated_vehicle_count,yearly_accumulated_production = self.get_accumulated_production(date,shift,shovel_id,production,vehicle_count,operating_time)
+                
                 loading_area_status = elements.textEdit_dig.toPlainText().strip()
                 parkingandroad_area_status = elements.textEdit_parkingandroad.toPlainText().strip()
                 unloading_area_status = elements.textEdit_dump.toPlainText().strip()
                 operating_status = elements.textEdit_opertingstatus.toPlainText().strip()
                 other_matters = elements.textEdit_other.toPlainText().strip()
                 operating_effect_factor = info['lineEdit_shift'].text().strip()
-                self.database.insert_shift_record(
-                    date=date,
-                    shift=shift,
-                    shovel_id=shovel_id,
-                    foreman=foreman,                    
-                    vehicle_count=int(vehicle_count) if vehicle_count.isdigit() else 0,
-                    operating_time=float(operating_time) if operating_time.replace('.','',1).isdigit() else 0.0,
-                    operating_length=float(operating_length) if operating_length.replace('.','',1).isdigit() else 0.0,
-                    vehicle_available_count=int(vehicle_available_count) if vehicle_available_count.isdigit() else 0,
-                    production=float(production) if production.replace('.','',1).isdigit() else 0.0,
-                    daily_accumulated_production = float(daily_accumulated_production) if daily_accumulated_production.replace('.','',1).isdigit() else 0.0,
-                    loading_area_status=loading_area_status,
-                    parkingandroad_area_status=parkingandroad_area_status,
-                    unloading_area_status=unloading_area_status,
-                    operating_status=operating_status,
-                    other_matters=other_matters,
-                    operating_effect_factor=operating_effect_factor
-                )
+                if daily_accumulated_production:
+                    self.database.insert_shift_record(
+                        date=date,
+                        shift=shift,
+                        shovel_id=shovel_id,
+                        foreman=foreman,                    
+                        vehicle_count=int(vehicle_count) if vehicle_count.isdigit() else None,
+                        operating_time=float(operating_time) if operating_time.replace('.','',1).isdigit() else None,
+                        operating_length=float(operating_length) if operating_length.replace('.','',1).isdigit() else None,
+                        vehicle_available_count=int(vehicle_available_count) if vehicle_available_count.isdigit() else None,
+                        production=float(production) if production.replace('.','',1).isdigit() else None,
+                        daily_accumulated_production = float(daily_accumulated_production) if daily_accumulated_production.replace('.','',1).isdigit() and daily_accumulated_production.replace('.','',1)!=0 else None,
+                        daily_plan = float(daily_plan) if daily_plan.replace('.','',1).isdigit() and daily_plan.replace('.','',1)!=0 else None,
+                        monthly_accumulated_production = float(monthly_accumulated_production) if monthly_accumulated_production.replace('.','',1).isdigit() and monthly_accumulated_production.replace('.','',1)!=0 else None,
+                        monthly_plan = float(monthly_plan) if monthly_plan.replace('.','',1).isdigit() and monthly_plan.replace('.','',1)!=0 else None,
+                        yearly_accumulated_operating_time = float(yearly_accumulated_operating_time) if yearly_accumulated_operating_time.replace('.','',1).isdigit() and yearly_accumulated_operating_time.replace('.','',1)!=0 else None,
+                        yearly_accumulated_vehicle_count = float(yearly_accumulated_vehicle_count) if yearly_accumulated_vehicle_count.replace('.','',1).isdigit() and yearly_accumulated_vehicle_count.replace('.','',1)!=0 else None,
+                        yearly_accumulated_production = float(yearly_accumulated_production) if yearly_accumulated_production.replace('.','',1).isdigit() and yearly_accumulated_production.replace('.','',1)!=0 else None,
+                        loading_area_status=loading_area_status,
+                        parkingandroad_area_status=parkingandroad_area_status,
+                        unloading_area_status=unloading_area_status,
+                        operating_status=operating_status,
+                        other_matters=other_matters,
+                        operating_effect_factor=operating_effect_factor
+                    )
+                else:
+                    self.database.insert_shift_record(
+                        date=date,
+                        shift=shift,
+                        shovel_id=shovel_id,
+                        foreman=foreman,                    
+                        vehicle_count=int(vehicle_count) if vehicle_count.isdigit() else None,
+                        operating_time=float(operating_time) if operating_time.replace('.','',1).isdigit() else None,
+                        operating_length=float(operating_length) if operating_length.replace('.','',1).isdigit() else None,
+                        vehicle_available_count=int(vehicle_available_count) if vehicle_available_count.isdigit() else None,
+                        production=float(production) if production.replace('.','',1).isdigit() else None,
+                        parkingandroad_area_status=parkingandroad_area_status,
+                        unloading_area_status=unloading_area_status,
+                        operating_status=operating_status,
+                        other_matters=other_matters,
+                        operating_effect_factor=operating_effect_factor
+                    )
+                # 更新所包含车辆的工作时长
+                vehicle_datas = self.database.get_vehicle_records(date=date,shovel_id=shovel_id,shift=shift)
+                for vehicle_data in vehicle_datas:
+                    vehicle_operating_hours = float(operating_time)-float(vehicle_data['vehicle_fault_duration']) if operating_time.replace('.','',1).isdigit() else None
+                    self.database.update_vehicle_record(
+                        vehicle_number=vehicle_data['vehicle_number'],
+                        date=date,
+                        shift=shift,
+                        vehicle_operating_hours=vehicle_operating_hours
+                    )
+                
 
+    def get_accumulated_production(self,date,shift,shovel_id,production,vehicle_count,operating_time):
+        
+        previous_day = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")        
+        if shift == '二班' :            
+            data_befores = self.database.get_shift_records(date = date,shift = "一班",shovel_id=shovel_id)
+            if not data_befores:
+                return None,None,None,None,None,None,None
+            data_before = data_befores[0]
+            daily_accumulated_production = production
+        elif shift == '三班':
+            data_befores = self.database.get_shift_records(date = date,shift = "二班",shovel_id=shovel_id)
+            if not data_befores:
+                return None,None,None,None,None,None,None
+            data_before = data_befores[0]           
+            daily_accumulated_production = data_before['daily_accumulated_production']+production
+        else:
+            data_befores = self.database.get_shift_records(date = previous_day,shift = "三班",shovel_id=shovel_id)
+            if not data_befores:
+                return None,None,None,None,None,None,None
+            data_before = data_befores[0]            
+            daily_accumulated_production = data_before['daily_accumulated_production']+production   
+        daily_plan = data_before['daily_plan']
+        monthly_accumulated_production = data_before['monthly_accumulated_production'] + production
+        monthly_plan = data_before['monthly_plan']
+        yearly_accumulated_operating_time = data_before['yearly_accumulated_operating_time'] + operating_time
+        yearly_accumulated_vehicle_count = data_before['yearly_accumulated_vehicle_count'] + vehicle_count
+        yearly_accumulated_production = data_before['yearly_accumulated_production'] + production
+        
+        return daily_accumulated_production,daily_plan,monthly_accumulated_production,monthly_plan,yearly_accumulated_operating_time,yearly_accumulated_vehicle_count,yearly_accumulated_production
+            
+        
+    
     # 加载车辆分配窗口
     def show_vehicle_distribution(self):
         window_vehicle_distribution = VehicleDistribution(self.database)

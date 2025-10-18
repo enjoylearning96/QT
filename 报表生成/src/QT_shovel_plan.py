@@ -2,7 +2,7 @@
 Author: 李晓乐
 Date: 2025-10-18 01:25:48
 LastEditors: enjoylearning96 148044540+enjoylearning96@users.noreply.github.com
-LastEditTime: 2025-10-18 02:15:17
+LastEditTime: 2025-10-18 10:43:25
 FilePath: \QT\报表生成\src\QT_shovel_plan.py
 Description: 
 
@@ -29,6 +29,7 @@ class ShovelPlan(QMainWindow):
         self.database = database
         self.shovel_add()
         self.dateEdit.setDate(QDate.currentDate())
+        self.update()
         self.dateEdit.dateChanged.connect(self.update)
         self.comboBox.currentIndexChanged.connect(self.update)
         self.pushButton.clicked.connect(self.save)
@@ -63,9 +64,9 @@ class ShovelPlan(QMainWindow):
             if data:
                 for key , line_edit in line_edit_dic.items():
                     if key == 'daily_end':
-                        line_edit.setText(str(data['daily_accumulated_production'] - data['daily_plan']))
+                        line_edit.setText(str(round(data['daily_accumulated_production'] - data['daily_plan'],4)))
                     elif key == 'monthly_end':
-                        line_edit.setText(str(data['monthly_accumulated_production'] - data['monthly_plan']))
+                        line_edit.setText(str(round(data['monthly_accumulated_production'] - data['monthly_plan'],4)))
                     elif key == 'monthly_end_per':
                         if data['monthly_plan'] != 0:
                             per = data['monthly_accumulated_production'] / data['monthly_plan'] * 100
