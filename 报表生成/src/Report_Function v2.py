@@ -49,9 +49,10 @@ class ReportGenerator():
         num_shovels = len(shovels)
         front_data = [None]*(3+num+1+1+num_shovels+1+5*num)
         front_data[0] = ["黑岱沟露天煤矿无人驾驶运行日报表"] + [""]*13
-        front_data[1]=[f"主要影响因素："]
+        front_data[1]=[f"{shifts_datas['date']}"]
         if self.shift == '一班':
             front_data[1].append(f"15 台无人驾驶卡车，{num}编组运行，故障  台，原车故障 0 台，无人故障  台，待令  台，调试 0 台，交付自营 0 台，4#395累计运行时间 0 小时，2#35累计运行时间 0 小时，单编组累计拉运 0 车，完成剥离量 0 立方米，平均运距 0 公里。")
+        front_data[1].append(f"主要影响因素：")
         for shift_datas in self.shifts_datas:
             if  shift_datas:  
                 front_data[1].append(f"{shift_datas[0]['shift']}：{shift_datas[0]['operating_effect_factor']};")
