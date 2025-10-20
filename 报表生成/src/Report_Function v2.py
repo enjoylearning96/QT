@@ -24,16 +24,22 @@ class ReportGenerator():
             '二班':None,
             '三班':None,
             '一班':None,
+            'date':None
             }
         if self.shift == '二班' or self.shift == '三班':
             self.shifts_datas['二班'] = self.database.get_shift_records(date=self.date, shift='二班')
             self.shifts_datas['三班'] = self.database.get_shift_records(date=self.date, shift='三班')
             self.shifts_datas['一班'] = self.database.get_shift_records(date=next_day, shift='一班')
+            date_start = datetime.strptime(self.date, "%Y-%m-%d")
+            date_end = datetime.strptime(next_day, "%Y-%m-%d")
+            self.shifts_datas['date'] = f"{date_start.month}月{date_start.day}日二班至{date_end.month}月{date_end.day}日一班"
         else:
             self.shifts_datas['二班'] = self.database.get_shift_records(date=previous_day, shift='二班')
             self.shifts_datas['三班'] = self.database.get_shift_records(date=previous_day, shift='三班')
             self.shifts_datas['一班'] = self.database.get_shift_records(date=self.date, shift='一班')
-    
+            date_start = datetime.strptime(previous_day, "%Y-%m-%d")
+            date_end = datetime.strptime(self.date, "%Y-%m-%d")
+            self.shifts_datas['date'] = f"{date_start.month}月{date_start.day}日二班至{date_end.month}月{date_end.day}日一班"
         
     def create_front(self):
         shovels = self.database.get_vehicle_data(vehicle_type='电铲',vehicle_available=1)
@@ -44,6 +50,8 @@ class ReportGenerator():
         front_data = [None]*(3+num+1+1+num_shovels+1+5*num)
         front_data[0] = ["黑岱沟露天煤矿无人驾驶运行日报表"] + [""]*13
         front_data[1]=[f"主要影响因素："]
+        if self.shift == '一班':
+            front_data[1].append(f"15 台无人驾驶卡车，{num}编组运行，故障  台，原车故障 0 台，无人故障  台，待令  台，调试 0 台，交付自营 0 台，4#395累计运行时间 0 小时，2#35累计运行时间 0 小时，单编组累计拉运 0 车，完成剥离量 0 立方米，平均运距 0 公里。")
         for shift_datas in self.shifts_datas:
             if  shift_datas:  
                 front_data[1].append(f"{shift_datas[0]['shift']}：{shift_datas[0]['operating_effect_factor']};")
