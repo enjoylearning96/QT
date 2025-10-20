@@ -2,6 +2,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
+from datetime import datetime, timedelta
 
 class ReportGenerator():
     
@@ -12,82 +13,80 @@ class ReportGenerator():
         self.database=database
         self.date = date
         self.shift = shift
+        self.init_data()
         self.create_front()
         self.create_back()
+    
+    def init_data(self):
+        previous_day = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        next_day = (datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+        self.shifts_datas = {
+            '二班':None,
+            '三班':None,
+            '一班':None,
+            }
+        if self.shift == '二班' or self.shift == '三班':
+            self.shifts_datas['二班'] = self.database.get_shift_records(date=self.date, shift='二班')
+            self.shifts_datas['三班'] = self.database.get_shift_records(date=self.date, shift='三班')
+            self.shifts_datas['一班'] = self.database.get_shift_records(date=next_day, shift='一班')
+        else:
+            self.shifts_datas['二班'] = self.database.get_shift_records(date=previous_day, shift='二班')
+            self.shifts_datas['三班'] = self.database.get_shift_records(date=previous_day, shift='三班')
+            self.shifts_datas['一班'] = self.database.get_shift_records(date=self.date, shift='一班')
+    
         
     def create_front(self):
-        self.shift_datas = self.database.get_shift_records(date=self.date, shift=self.shift)
-        if self.shift_datas:
-            shovels = self.database.get_vehicle_data(vehicle_type='电铲',vehicle_available=1)
-            num=len(self.shift_datas)
-            num_shovels = len(shovels)
-            front_data = [None]*(3+num+1+1+num_shovels+1+5*num)
-            front_data[0] = ["黑岱沟露天煤矿无人驾驶运行日报表"] + [""]*13
-            front_data[2] = ["生产完成情况", "", "铲组", "", "日计划（万m³）", "日完成（万m³）", "日超欠（万m³）", "", "月计划（万m³）", "月完成（万m³）", "月超欠（万m³）", "", "完成月计划的百分比"]
+        shovels = self.database.get_vehicle_data(vehicle_type='电铲',vehicle_available=1)
+        # 当前班次所使用的电铲数
+        num=len(self.shifts_datas[self.shift])
+        # 所有可使用电铲
+        num_shovels = len(shovels)
+        front_data = [None]*(3+num+1+1+num_shovels+1+5*num)
+        front_data[0] = ["黑岱沟露天煤矿无人驾驶运行日报表"] + [""]*13
+        front_data[1]=[f"主要影响因素："]
+        for shift_datas in self.shifts_datas:
+            if  shift_datas:  
+                front_data[1].append(f"{shift_datas[0]['shift']}：{shift_datas[0]['operating_effect_factor']};")
+        front_data[2] = ["生产完成情况", "", "铲组", "", "日计划（万m³）", "日完成（万m³）", "日超欠（万m³）", "", "月计划（万m³）", "月完成（万m³）", "月超欠（万m³）", "", "完成月计划的百分比"]
+
+        
+        i=0
+        if self.shift == '二班' or self.shift == '三班':
+            shift_datas = self.shifts_datas['二班']
+            for shift_data in self.shift_datas:
+                front_data[3+i] = ["", "", f"{shift_data['shovel_id']}", "", f"{shift_data['daily_plan']}", "", "", "", f"{shift_data['monthly_plan']}", "", "", "", ""]
+                i+=1
+        else:
+            shift_datas = self.shifts_datas['一班']
+            for shift_data in self.shift_datas:
+                front_data[3+i] = ["", "", f"{shift_data['shovel_id']}", "", f"{shift_data['daily_plan']}", "", "", "", f"{shift_data['monthly_plan']}", "", "", "", ""]
+                i+=1        
+        
+        front_data[3+i]=["总计", "", "", "", "", "", "", "", "", "", "", "", ""]
+        front_data[4+i]=["年度完成情况", "", "铲组", "", "日期", "", "年度累计运行时间 (小时）", "", "年度累计拉运车数（车）", "", "年度累计完成产量（m³）", "", ""]
+        
+        j=0
+        for shovel in shovels:
+            if shovel['vehicle_number'] == '"7#55"':                   
+                front_data[5+i+j] = ["", "", "7#55", "", "","1月1日一班-6月28日一班", "", "1859.8", "", "25005", "", "2587802", "", ""]
+            elif shovel['vehicle_number'] == '"8#55"':
+                front_data[5+i+j] = ["", "", "8#55", "", "","5月16日二班-5月29日一班", "", "146.1", "", "1999", "", "174645", "", ""]
+            elif shovel['vehicle_number'] == '"8#55"':
+                front_data[5+i+j] = ["", "", "5#55", "","", "6月12日二班-6月30日一班", "", "124.2", "", "758", "", "79765", "", ""]
+            else :
+                front_data[5+i+j] = [""]*14
+            j+=1
+        front_data[5+i+j] = ["", "", "", f"{shift_datas[0]['foreman']}", "", "", f"{shift_datas[0]['foreman']}", "", "", "", f"{shift_datas[0]['foreman']}", "","", ""]
+        k=0
+        for shift_data in self.shift_datas:
+            front_data[6+i+j+5*k] = [f"{shift_data['shovel_id']}", "配车数", f"{shift_data['vehicle_available_count']}", "台", f"{shift_data['operating_status']}", "", "0", "台", "", "", "0", "台", ""]
+            front_data[7+i+j+5*k] = ["", "拉运车数", f"{shift_data['vehicle_count']}", "车", "", "", "0", "车", "", "", "0", "车", ""]
+            front_data[8+i+j+5*k] = ["", "运行时长", f"{shift_data['operating_time']}", "小时", "", "", "0", "小时", "", "", "0", "小时", ""]
+            front_data[9+i+j+5*k] = ["", "运距", f"{shift_data['operating_length']}", "公里", "", "", "0", "公里", "", "", "0", "公里", ""]
+            front_data[10+i+j+5*k] = ["", "产量", f"{shift_data['production']}", "m³", "", "", "0", "m³", "", "", "0", "m³", ""]
+            k+=1
             
-            if self.shift == '二班':
-                
-                front_data[1]=[f"主要影响因素：二班：{shift_datas[0]['operating_effect_factor']}"]
-                i=0
-                for shift_data in self.shift_datas:
-                    front_data[3+i] = ["", "", f"{shift_data['shovel_id']}", "", f"{shift_data['daily_plan']}", "", "", "", f"{shift_data['monthly_plan']}", "", "", "", ""]
-                    i+=1
-                front_data[3+i]=["总计", "", "", "", "", "", "", "", "", "", "", "", ""]
-                front_data[4+i]=["年度完成情况", "", "铲组", "", "日期", "", "年度累计运行时间 (小时）", "", "年度累计拉运车数（车）", "", "年度累计完成产量（m³）", "", ""]
-                
-                j=0
-                for shovel in shovels:
-                    if shovel['vehicle_number'] == '"7#55"':                   
-                        front_data[5+i+j] = ["", "", "7#55", "", "","1月1日一班-6月28日一班", "", "1859.8", "", "25005", "", "2587802", "", ""]
-                    elif shovel['vehicle_number'] == '"8#55"':
-                        front_data[5+i+j] = ["", "", "8#55", "", "","5月16日二班-5月29日一班", "", "146.1", "", "1999", "", "174645", "", ""]
-                    elif shovel['vehicle_number'] == '"8#55"':
-                        front_data[5+i+j] = ["", "", "5#55", "","", "6月12日二班-6月30日一班", "", "124.2", "", "758", "", "79765", "", ""]
-                    else :
-                        front_data[5+i+j] = [""]*14
-                    j+=1
-                front_data[5+i+j] = ["", "", "", f"{shift_datas[0]['foreman']}", "", "", f"{shift_datas[0]['foreman']}", "", "", "", f"{shift_datas[0]['foreman']}", "","", ""]
-                k=0
-                for shift_data in self.shift_datas:
-                    front_data[6+i+j+5*k] = [f"{shift_data['shovel_id']}", "配车数", f"{shift_data['vehicle_available_count']}", "台", f"{shift_data['operating_status']}", "", "0", "台", "", "", "0", "台", ""]
-                    front_data[7+i+j+5*k] = ["", "拉运车数", f"{shift_data['vehicle_count']}", "车", "", "", "0", "车", "", "", "0", "车", ""]
-                    front_data[8+i+j+5*k] = ["", "运行时长", f"{shift_data['operating_time']}", "小时", "", "", "0", "小时", "", "", "0", "小时", ""]
-                    front_data[9+i+j+5*k] = ["", "运距", f"{shift_data['operating_length']}", "公里", "", "", "0", "公里", "", "", "0", "公里", ""]
-                    front_data[10+i+j+5*k] = ["", "产量", f"{shift_data['production']}", "m³", "", "", "0", "m³", "", "", "0", "m³", ""]
-                    k+=1
-            
-                    
-            elif self.shift == '三班':
-                
-                shift_datas_2 = self.database.get_shift_records(date=self.date, shift='二班')
-                front_data[1]=[f"主要影响因素：二班：{shift_datas_2[0]['operating_effect_factor']}；三班：{shift_datas[0]['operating_effect_factor']}"]
-                i=0
-                for shift_data in self.shift_datas:
-                    front_data[3+i] = ["", "", f"{shift_data['shovel_id']}", "", f"{shift_data['daily_plan']}", "", "", "", f"{shift_data['monthly_plan']}", "", "", "", ""]
-                    i+=1
-                front_data[3+i]=["总计", "", "", "", "", "", "", "", "", "", "", "", ""]
-                front_data[4+i]=["年度完成情况", "", "铲组", "", "日期", "", "年度累计运行时间 (小时）", "", "年度累计拉运车数（车）", "", "年度累计完成产量（m³）", "", ""]
-                
-                j=0
-                for shovel in shovels:
-                    if shovel['vehicle_number'] == '"7#55"':                   
-                        front_data[5+i+j] = ["", "", "7#55", "", "","1月1日一班-6月28日一班", "", "1859.8", "", "25005", "", "2587802", "", ""]
-                    elif shovel['vehicle_number'] == '"8#55"':
-                        front_data[5+i+j] = ["", "", "8#55", "", "","5月16日二班-5月29日一班", "", "146.1", "", "1999", "", "174645", "", ""]
-                    elif shovel['vehicle_number'] == '"8#55"':
-                        front_data[5+i+j] = ["", "", "5#55", "","", "6月12日二班-6月30日一班", "", "124.2", "", "758", "", "79765", "", ""]
-                    else :
-                        front_data[5+i+j] = [""]*14
-                    j+=1
-                front_data[5+i+j] = ["", "", "", f"{shift_datas[0]['foreman']}", "", "", f"{shift_datas[0]['foreman']}", "", "", "", f"{shift_datas[0]['foreman']}", "","", ""]
-                k=0
-                for shift_data in self.shift_datas:
-                    front_data[6+i+j+5*k] = [f"{shift_data['shovel_id']}", "配车数", f"{shift_data['vehicle_available_count']}", "台", f"{shift_data['operating_status']}", "", "0", "台", "", "", "0", "台", ""]
-                    front_data[7+i+j+5*k] = ["", "拉运车数", f"{shift_data['vehicle_count']}", "车", "", "", "0", "车", "", "", "0", "车", ""]
-                    front_data[8+i+j+5*k] = ["", "运行时长", f"{shift_data['operating_time']}", "小时", "", "", "0", "小时", "", "", "0", "小时", ""]
-                    front_data[9+i+j+5*k] = ["", "运距", f"{shift_data['operating_length']}", "公里", "", "", "0", "公里", "", "", "0", "公里", ""]
-                    front_data[10+i+j+5*k] = ["", "产量", f"{shift_data['production']}", "m³", "", "", "0", "m³", "", "", "0", "m³", ""]
-                    k+=1
+
     # ==================== 正面工作表 ====================
     '''
     front_data = [
